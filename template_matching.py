@@ -3,13 +3,12 @@ import numpy as np
 import imutils as imu
 
 # doc anh va template
-sr0 = cv2.imread("data/sample-2-3.bmp")
+sr0 = cv2.imread("datafornichi/samp_test.png")
 img_src = cv2.cvtColor(sr0,cv2.COLOR_BGR2GRAY)
 
-sr1= cv2.imread("data/sample_for_template.bmp")
+sr1= cv2.imread("datafornichi/tem.png")
 img_template = cv2.cvtColor(sr1,cv2.COLOR_BGR2GRAY)
 best= 0
-cv2.imshow("besT template angle",img_template)
 
 # list method co the dung khi matching template eval(cv2.TM_CCOEFF),eval(cv2.TM_CCORR_NORMED),eval(cv2.TM_CCORR),eval(cv2.TM_SQDIFF),cv2.TM_SQDIFF_NORMED
 method = eval("cv2.TM_CCOEFF_NORMED")
@@ -17,17 +16,14 @@ h, w = img_template.shape[::]
 
 threshold = 0.0
 topleft = [0,0]
-# resolve angel problem
-for i in range(0,181,1):
-    src_rotate = imu.rotate(img_src,i)
-    res = cv2.matchTemplate(src_rotate,img_template, method)
-    # xác dịnh tọa độ và vẽ khung cho template trên ảnh
-    minval, maxval, minloc, maxloc = cv2.minMaxLoc(res)
-    if(maxval>=threshold):
-        print(threshold,':',i)
-        best = i
-        threshold = maxval
-        topleft = maxloc
+
+res = cv2.matchTemplate(img_src,img_template, method)
+# xác dịnh tọa độ và vẽ khung cho template trên ảnh
+minval, maxval, minloc, maxloc = cv2.minMaxLoc(res)
+threshold = maxval
+topleft = maxloc
+
+
 
 #     de ve hinh chu nhat thi can biet toa do 2 goc cheo
 bottomright= (topleft[0]+w,topleft[1]+h)

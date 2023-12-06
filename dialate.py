@@ -6,20 +6,19 @@ import time
 
 def get_gradient_sobel(image):
     img_src = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.pyrMeanShiftFiltering(image, 40, 60)
     kernel = np.ones((5, 5), np.uint8)
-    dilated_image = cv2.dilate(blurred, kernel, iterations=1)
-    gray = cv2.cvtColor(dilated_image, cv2.COLOR_BGR2GRAY)
+    dilated_image = cv2.dilate(img_src, kernel, iterations=1)
 
-
-    _, edges_src = cv2.threshold(gray, 100, 140, cv2.THRESH_BINARY_INV)
+    _, edges_src = cv2.threshold(dilated_image, 100, 140, cv2.THRESH_BINARY_INV)
     edges = cv2.Canny(edges_src, 80, 160)
 
     contours, hierarchy_src = cv2.findContours(edges_src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-    largest_contour = max(contours, key=cv2.contourArea)
-    cv2.drawContours(img_src, [largest_contour], -1, (0, 0, 255), 1, cv2.LINE_AA)
-    cv2.imshow('img_src', img_src)
-    #   end với cạnh trên và cạnh dưới để bỏ ruột
+    mask = np.zeros_like(edges_src, dtype=np.uint8)
+    for cons in contours:
+        area = cv2.contourArea(cons)
+        if area > 1000:
+            print(area)
+            cv2.drawContours(mask, [cons], -1, (255), thickness=1)
 
 
     # sobel
@@ -51,7 +50,6 @@ def get_gradient_sobel(image):
     except:
         print("noline")
     cv2.imshow('2',dilated_image)
-    cv2.imshow('4',blurred)
     cv2.imshow('1', image)
     cv2.imshow('edges', edges)
     return edges,  point_top , point_bottom
@@ -89,7 +87,7 @@ def find_longest_line(points):
 
 
 # Đọc ảnh và tiền xử lý source
-sr0 = cv2.imread("datafornichi/pipe_lite.bmp")
+sr0 = cv2.imread("datafornichi/samp_lite.png")
 edges, TopLine, Botline = get_gradient_sobel(sr0)
 
 # # Gọi hàm con để tìm đường thẳng dài nhất

@@ -62,7 +62,7 @@ contours, hierarchy_src = cv2.findContours(edges_src, cv2.RETR_TREE, cv2.CHAIN_A
 
 
 #  đọc  và tiền xử lý template
-sr1= cv2.imread("data/imgSrc/template.bmp")
+sr1= cv2.imread("datafornichi/tem.png")
 img_template = cv2.cvtColor(sr1,cv2.COLOR_BGR2GRAY)
 blurred = cv2.GaussianBlur(img_template, (3,3), 0)
 _, edges_temlate = cv2.threshold(blurred, 100, 160, cv2.THRESH_BINARY_INV)
@@ -70,7 +70,7 @@ contours_temp, hierarchy_temp = cv2.findContours(edges_temlate, cv2.RETR_TREE,cv
 
 
 #  đọc  và tiền xử lý template flip
-sr1_flip= cv2.imread("data/imgSrc/template-flip.bmp")
+sr1_flip= cv2.imread("datafornichi/samp_test.png")
 img_template_flip = cv2.cvtColor(sr1_flip,cv2.COLOR_BGR2GRAY)
 blurred = cv2.GaussianBlur(img_template_flip, (3,3), 0)
 _,edges_template_flip = cv2.threshold(blurred, 100, 160, cv2.THRESH_BINARY_INV)

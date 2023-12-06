@@ -4,7 +4,6 @@ import numpy as np
 import math
 import time
 
-import matplotlib.pyplot as plt
 
 def group_points_by_y(points, y_threshold=20):
     groups = []
@@ -27,13 +26,11 @@ def group_points_by_y(points, y_threshold=20):
 
 
 def get_gradient_sobel(image):
-    blurred = cv2.pyrMeanShiftFiltering(image,60, 60)
+    img_src = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     kernel = np.ones((5, 5), np.uint8)
-    dilated_image = cv2.dilate(blurred, kernel, iterations=1)
-    gray = cv2.cvtColor(dilated_image, cv2.COLOR_BGR2GRAY)
+    dilated_image = cv2.dilate(img_src, kernel, iterations=1)
 
-
-    _, edges_src = cv2.threshold(gray, 110, 200, cv2.THRESH_BINARY_INV)
+    _, edges_src = cv2.threshold(dilated_image, 100, 140, cv2.THRESH_BINARY_INV)
     edges = cv2.Canny(edges_src, 80, 160)
 
     contours, hierarchy_src = cv2.findContours(edges_src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -41,8 +38,7 @@ def get_gradient_sobel(image):
     for cons in contours:
         area = cv2.contourArea(cons)
         if area > 1000:
-            print(area)
-            cv2.drawContours(mask, [cons], -1, (255), thickness=1)
+            cv2.drawContours(mask, [cons], -1, (255),thickness=cv2.FILLED)
     # sobel
     sobel_x = cv2.Sobel(edges_src, cv2.CV_64F, 1, 0, ksize=3)
     sobel_y = cv2.Sobel(edges_src, cv2.CV_64F, 0, 1, ksize=3)
@@ -50,10 +46,12 @@ def get_gradient_sobel(image):
 
     gradient_angle = np.zeros_like(direc_angle, dtype=np.uint8)
     gradient_angle_flip = np.zeros_like(direc_angle, dtype=np.uint8)
+
+
     gradient_angle[direc_angle == -90] = 255
     gradient_angle_flip[direc_angle == 90] = 255
 
-
+    mask = cv2.bitwise_not(mask)
     # #   end với cạnh trên và cạnh dưới để bỏ ruột
     gradient_angle = cv2.bitwise_and(gradient_angle, mask)
     gradient_angle_flip = cv2.bitwise_and(gradient_angle_flip, mask)
@@ -68,17 +66,20 @@ def get_gradient_sobel(image):
     try:
         for line in lines_top:
             x1, y1, x2, y2 = line[0]
+            cv2.line(dilated_image, (x1, y1), (x2, y2), (255, 255, 255), 1, cv2.LINE_AA)
             cv2.line(image, (x1, y1), (x2, y2), (0, 0, 255), 1, cv2.LINE_AA)
             # print(x1, y1, x2, y2)
         for line in lines_bot:
             x1, y1, x2, y2 = line[0]
+            cv2.line(dilated_image, (x1, y1), (x2, y2), (255, 255, 255), 1, cv2.LINE_AA)
             cv2.line(image, (x1, y1), (x2, y2), (0, 255, 255), 1, cv2.LINE_AA)
-            # print(x1, y1, x2, y2)
+
     except:
         print("noline")
-    cv2.imshow('4',gray)
+    cv2.imshow('4',dilated_image)
+    cv2.imwrite("phuc3.png",dilated_image)
     cv2.imshow('1', image)
-    cv2.imshow('edges', mask)
+    cv2.imshow('2', mask)
     return edges,  point_top , point_bottom
 
 
@@ -107,31 +108,32 @@ def fit_pca(data, src):
 
 
 # Đọc ảnh và tiền xử lý source
-sr0 = cv2.imread("datafornichi/pipe3.png")
+sr0 = cv2.imread("datafornichi/NG01_LITE.jpg")
 # sr0 = cv2.pyrDown(sr0)
 # sr0 = cv2.pyrDown(sr0)
 edges, TopLine, Botline = get_gradient_sobel(sr0)
 
 group_top= group_points_by_y(TopLine)
 group_bot = group_points_by_y(Botline)
-# for it,gt in enumerate(group_top):
-#     for ib,gb in enumerate(group_bot):
-#         if(ib == it):
-#             vector_top,xmin_top, xmax_top=fit_pca(gt,sr0)
-#             vector_bot,xmin_bot, xmax_bot=fit_pca( gb,sr0)
-#             distance = cv2.norm(vector_top, vector_bot)
-#             print(f'xmin_top: {xmin_top}')
-#             print(f'xmax_top: {xmax_top}')
-#             print(f'xmin_bot: {xmin_bot}')
-#             print(f'xmax_bot {xmax_bot}')
-#             print(f'Khoảng cách giữa hai vector là: {distance}')
-#             print(f'độ phân giải ảnh là: {edges.shape[::]}')
-
-for ib,gb in enumerate(group_bot):
-            vector_top,xmin_top, xmax_top=fit_pca(gb,sr0)
+for it,gt in enumerate(group_top):
+    for ib,gb in enumerate(group_bot):
+        if(ib == it):
+            vector_top,xmin_top, xmax_top=fit_pca(gt,sr0)
+            vector_bot,xmin_bot, xmax_bot=fit_pca( gb,sr0)
+            distance = cv2.norm(vector_top, vector_bot)
+            print(vector_top)
+            print(vector_bot)
             print(f'xmin_top: {xmin_top}')
             print(f'xmax_top: {xmax_top}')
+            print(f'xmin_bot: {xmin_bot}')
+            print(f'xmax_bot {xmax_bot}')
+            print(f'Khoảng cách giữa hai vector là: {distance}')
             print(f'độ phân giải ảnh là: {edges.shape[::]}')
+cv2.imwrite("src0.png",sr0)
+# for ib,gb in enumerate(group_bot):
+#             vector_top,xmin_top, xmax_top=fit_pca(gb,sr0)
+#             print(f'xmin_top: {xmin_top}')
+#             print(f'xmax_top: {xmax_top}')
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
