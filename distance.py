@@ -127,72 +127,69 @@ def crop_and_process_large_image(large_image_path, coordinates_str):
         print("coordinates erro")
         return 0
 
+large_image_path = "datafornichi/samp_lite.png"
+coordinates_str = ""
+sr0 = crop_and_process_large_image(large_image_path, coordinates_str)
+sr0 = cv2.pyrDown(sr0)
+
+# # # Đọc ảnh và tiền xử lý source
+edges, TopLine, Botline = get_gradient_sobel(sr0)
+group_top= group_points_by_y(TopLine)
+group_bot = group_points_by_y(Botline)
+for it,gt in enumerate(group_top):
+    for ib,gb in enumerate(group_bot):
+        if(ib == it):
+            vector_top,xmin_top, xmax_top=fit_pca(gt,sr0)
+            vector_bot,xmin_bot, xmax_bot=fit_pca( gb,sr0)
+            distance = cv2.norm(vector_top, vector_bot)
+            print(vector_top)
+            print(vector_bot)
+            print(f'xmin_top: {xmin_top}')
+            print(f'xmax_top: {xmax_top}')
+            print(f'xmin_bot: {xmin_bot}')
+            print(f'xmax_bot {xmax_bot}')
+            print(f'Khoảng cách giữa hai vector là: {distance}')
+            print(f'độ phân giải ảnh là: {edges.shape[::]}')
+cv2.imwrite("src0.png",sr0)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
 
-
-# large_image_path = "datafornichi/samp_lite.png"
-# coordinates_str = "187,72,325,74,190,170,346,170"
-# sr0 = crop_and_process_large_image(large_image_path, coordinates_str)
+# def main():
+#     if len(sys.argv[0]) < 6 and len(sys.argv) < 2:
+#         print("missing path:")
+#     elif len(sys.argv) == 3:
+#         path = sys.argv[1]
+#         coordinates_str = sys.argv[2]
+#     elif len(sys.argv) == 2:
+#         path = sys.argv[1]
+#         coordinates_str = ""
+#     try:
+#         sr0 = crop_and_process_large_image(path, coordinates_str)
+#         edges, TopLine, Botline = get_gradient_sobel(sr0)
+#         group_top = group_points_by_y(TopLine)
+#         group_bot = group_points_by_y(Botline)
+#         for it, gt in enumerate(group_top):
+#             for ib, gb in enumerate(group_bot):
+#                 if (ib == it):
+#                     vector_top, xmin_top, xmax_top = fit_pca(gt, sr0)
+#                     vector_bot, xmin_bot, xmax_bot = fit_pca(gb, sr0)
+#                     distance = cv2.norm(vector_top, vector_bot)
+#                     print(vector_top)
+#                     print(vector_bot)
+#                     print(f'xmin_top: {xmin_top}')
+#                     print(f'xmax_top: {xmax_top}')
+#                     print(f'xmin_bot: {xmin_bot}')
+#                     print(f'xmax_bot {xmax_bot}')
+#                     print(f'Khoảng cách giữa hai vector là: {distance}')
+#                     print(f'độ phân giải ảnh là: {edges.shape[::]}')
+#         cv2.waitKey(0)
+#         cv2.destroyAllWindows()
+#     except:
+#         return 'đường dẫn không chính xác'
 #
-#
-# # # # Đọc ảnh và tiền xử lý source
-# edges, TopLine, Botline = get_gradient_sobel(sr0)
-# group_top= group_points_by_y(TopLine)
-# group_bot = group_points_by_y(Botline)
-# for it,gt in enumerate(group_top):
-#     for ib,gb in enumerate(group_bot):
-#         if(ib == it):
-#             vector_top,xmin_top, xmax_top=fit_pca(gt,sr0)
-#             vector_bot,xmin_bot, xmax_bot=fit_pca( gb,sr0)
-#             distance = cv2.norm(vector_top, vector_bot)
-#             print(vector_top)
-#             print(vector_bot)
-#             print(f'xmin_top: {xmin_top}')
-#             print(f'xmax_top: {xmax_top}')
-#             print(f'xmin_bot: {xmin_bot}')
-#             print(f'xmax_bot {xmax_bot}')
-#             print(f'Khoảng cách giữa hai vector là: {distance}')
-#             print(f'độ phân giải ảnh là: {edges.shape[::]}')
-# cv2.imwrite("src0.png",sr0)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
-
-
-def main():
-    if len(sys.argv[0]) < 6 and len(sys.argv) < 2:
-        print("missing path:")
-    elif len(sys.argv) == 3:
-        path = sys.argv[1]
-        coordinates_str = sys.argv[2]
-    elif len(sys.argv) == 2:
-        path = sys.argv[1]
-        coordinates_str = ""
-    try:
-        sr0 = crop_and_process_large_image(path, coordinates_str)
-        edges, TopLine, Botline = get_gradient_sobel(sr0)
-        group_top = group_points_by_y(TopLine)
-        group_bot = group_points_by_y(Botline)
-        for it, gt in enumerate(group_top):
-            for ib, gb in enumerate(group_bot):
-                if (ib == it):
-                    vector_top, xmin_top, xmax_top = fit_pca(gt, sr0)
-                    vector_bot, xmin_bot, xmax_bot = fit_pca(gb, sr0)
-                    distance = cv2.norm(vector_top, vector_bot)
-                    print(vector_top)
-                    print(vector_bot)
-                    print(f'xmin_top: {xmin_top}')
-                    print(f'xmax_top: {xmax_top}')
-                    print(f'xmin_bot: {xmin_bot}')
-                    print(f'xmax_bot {xmax_bot}')
-                    print(f'Khoảng cách giữa hai vector là: {distance}')
-                    print(f'độ phân giải ảnh là: {edges.shape[::]}')
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-    except:
-        return 'đường dẫn không chính xác'
-
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
 
 
