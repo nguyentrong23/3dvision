@@ -58,8 +58,9 @@ def increase_contrast(image, alpha=1.5, beta=5):
     return  adjusted_image
 
 
-image = cv2.imread("datafornichi/samp_lite.png")
-edges, TopLine, Botline = get_gradient_sobel(image, 60, 120)
+image = cv2.imread("datafornichi/src/test.png")
+image = cv2.pyrDown(image)
+edges, TopLine, Botline = get_gradient_sobel(image, 20,30)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 

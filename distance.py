@@ -23,14 +23,18 @@ def group_points_by_y(points, y_threshold=20):
     groups.append(current_group)
     return groups
 
+def increase_contrast(image, alpha=2.0, beta=1):
+    # Áp dụng phép biến đổi pixel để tăng độ tương phản
+    adjusted_image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
+    return  adjusted_image
 
 
 def get_gradient_sobel(image):
-    img_src = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    kernel = np.ones((5, 5), np.uint8)
-    dilated_image = cv2.dilate(img_src, kernel, iterations=1)
-
-    _, edges_src = cv2.threshold(dilated_image, 100, 140, cv2.THRESH_BINARY_INV)
+    image = increase_contrast(image)
+    blurred = cv2.GaussianBlur(image,(5,5), 0)
+    blurred = cv2.pyrMeanShiftFiltering(blurred,20,40)
+    img_src = cv2.cvtColor(blurred , cv2.COLOR_BGR2GRAY)
+    _, edges_src = cv2.threshold(img_src,120,255, cv2.THRESH_BINARY_INV)
     edges = cv2.Canny(edges_src, 80, 160)
 
     contours, hierarchy_src = cv2.findContours(edges_src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
@@ -46,8 +50,6 @@ def get_gradient_sobel(image):
 
     gradient_angle = np.zeros_like(direc_angle, dtype=np.uint8)
     gradient_angle_flip = np.zeros_like(direc_angle, dtype=np.uint8)
-
-
     gradient_angle[direc_angle == -90] = 255
     gradient_angle_flip[direc_angle == 90] = 255
 
@@ -66,20 +68,17 @@ def get_gradient_sobel(image):
     try:
         for line in lines_top:
             x1, y1, x2, y2 = line[0]
-            cv2.line(dilated_image, (x1, y1), (x2, y2), (255, 255, 255), 1, cv2.LINE_AA)
             cv2.line(image, (x1, y1), (x2, y2), (0, 0, 255), 1, cv2.LINE_AA)
             # print(x1, y1, x2, y2)
         for line in lines_bot:
             x1, y1, x2, y2 = line[0]
-            cv2.line(dilated_image, (x1, y1), (x2, y2), (255, 255, 255), 1, cv2.LINE_AA)
             cv2.line(image, (x1, y1), (x2, y2), (0, 255, 255), 1, cv2.LINE_AA)
 
     except:
         print("noline")
-    # cv2.imshow('4',dilated_image)
-    # cv2.imwrite("phuc3.png",dilated_image)
-    # cv2.imshow('1', image)
-    # cv2.imshow('2', mask)
+    # cv2.imshow('img_src',img_src)
+    # cv2.imshow('blurred',blurred)
+    # cv2.imshow('edges_src', edges_src)
     return edges,  point_top , point_bottom
 
 
@@ -99,7 +98,7 @@ def fit_pca(data, src):
     line_start = (int(mean_point[0] + eigenvectors[0][0] * min_val), int(mean_point[1] + eigenvectors[0][1] * min_val))
     line_end = (int(mean_point[0] + eigenvectors[0][0] * max_val), int(mean_point[1] + eigenvectors[0][1] * max_val))
     cv2.line(src, line_start, line_end, (255,255, 0), 1,cv2.LINE_AA)
-    cv2.imwrite('resutl.png',src)
+    # cv2.imwrite('resutl.png',src)
     cv2.imshow('3333333333333', src)
     return vector1_end,min_val,max_val
 
@@ -130,7 +129,7 @@ def crop_and_process_large_image(large_image_path, coordinates_str):
 large_image_path = "datafornichi/samp_lite.png"
 coordinates_str = ""
 sr0 = crop_and_process_large_image(large_image_path, coordinates_str)
-sr0 = cv2.pyrDown(sr0)
+
 
 # # # Đọc ảnh và tiền xử lý source
 edges, TopLine, Botline = get_gradient_sobel(sr0)

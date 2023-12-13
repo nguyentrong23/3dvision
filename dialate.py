@@ -3,114 +3,142 @@ import cv2
 import numpy as np
 import math
 import time
+try:
+    import imutils
+except:
+    os.system("pip install imutils")
+    import imutils
 
-def get_gradient_sobel(image):
-    img_src = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    kernel = np.ones((5, 5), np.uint8)
-    dilated_image = cv2.dilate(img_src, kernel, iterations=1)
+def fit_angel_pca(contours, hierarchy, src):
+    min = 1000
+    output = {}
+    for index, cnt in enumerate(contours):
+        if hierarchy[0, index, 3] != -1:
+            continue;
+        # if hierarchy[0, index, 2] != -1:
+        #     continue;
+        area = cv2.contourArea(cnt)
+        if area >= min:
+            data = cnt[:, 0, :].astype(np.float32)
+            mean, eigenvectors = cv2.PCACompute(data, mean=None)
+            angel = math.atan2(eigenvectors[0][1], eigenvectors[0][0]) * (180 / math.pi)
+            mean_point = (int(round(mean[0][0])), int(round(mean[0][1])))
+            cv2.circle(src, mean_point, 5, (0, 0, 255), -1)
+            output[tuple(mean.flatten())] = angel
+            scale = 100
+            vector2_end = (int(mean_point[0] + eigenvectors[0][0] * scale), int(mean_point[1] + eigenvectors[0][1] * scale))
+            cv2.arrowedLine(src, mean_point, vector2_end, (0, 255, 0), 1, cv2.LINE_AA)
+    return output, src
 
-    _, edges_src = cv2.threshold(dilated_image, 100, 140, cv2.THRESH_BINARY_INV)
-    edges = cv2.Canny(edges_src, 80, 160)
+def tienxuly(sr0):
+    img_src = cv2.cvtColor(sr0, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(img_src, (3, 3), 0)
+    _, edges_src = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY_INV)
+    contours, hierarchy = cv2.findContours(edges_src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    return contours, hierarchy, edges_src
 
-    contours, hierarchy_src = cv2.findContours(edges_src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-    mask = np.zeros_like(edges_src, dtype=np.uint8)
-    for cons in contours:
-        area = cv2.contourArea(cons)
-        if area > 1000:
-            print(area)
-            cv2.drawContours(mask, [cons], -1, (255), thickness=1)
-
-
-    # sobel
-    sobel_x = cv2.Sobel(edges_src, cv2.CV_64F, 1, 0, ksize=3)
-    sobel_y = cv2.Sobel(edges_src, cv2.CV_64F, 0, 1, ksize=3)
-    direc_angle = np.degrees(np.arctan2(sobel_y, sobel_x))
-
-    gradient_angle = np.zeros_like(direc_angle, dtype=np.uint8)
-    gradient_angle_flip = np.zeros_like(direc_angle, dtype=np.uint8)
-    gradient_angle[direc_angle == -90] = 255
-    gradient_angle_flip[direc_angle == 90] = 255
-
-    data_bottom = np.where(gradient_angle != 0)
-    point_bottom = np.column_stack((data_bottom[1], data_bottom[0]))
-    data_top = np.where(gradient_angle_flip != 0)
-    point_top = np.column_stack((data_top[1], data_top[0]))
-
-    lines_top = cv2.HoughLinesP(gradient_angle, 1, np.pi / 180, threshold=50, minLineLength=30, maxLineGap=10)
-    lines_bot = cv2.HoughLinesP(gradient_angle_flip, 1, np.pi / 180, threshold=50, minLineLength=30, maxLineGap=10)
-    try:
-        for line in lines_top:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(image, (x1, y1), (x2, y2), (0, 0, 255), 1, cv2.LINE_AA)
-            print(x1, y1, x2, y2)
-        for line in lines_bot:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(image, (x1, y1), (x2, y2), (0, 255, 255), 1, cv2.LINE_AA)
-            print(x1, y1, x2, y2)
-    except:
-        print("noline")
-    cv2.imshow('2',dilated_image)
-    cv2.imshow('1', image)
-    cv2.imshow('edges', edges)
-    return edges,  point_top , point_bottom
+def remove_jig(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    lower_blue = np.array([90, 100, 100])
+    upper_blue = np.array([130, 255, 255])
+    # Tạo mask để chỉ giữ lại các pixel nằm trong khoảng giá trị màu xanh dương
+    mask = np.zeros_like(img, dtype=np.uint8)
+    mask[(hsv[:, :, 0] >= lower_blue[0]) & (hsv[:, :, 0] <= upper_blue[0]) &
+         (hsv[:, :, 1] >= lower_blue[1]) & (hsv[:, :, 1] <= upper_blue[1]) &
+         (hsv[:, :, 2] >= lower_blue[2]) & (hsv[:, :, 2] <= upper_blue[2])] =255
+    result = cv2.bitwise_or(img, mask)
+    # cv2.imshow('Original Image', mask)
+    # cv2.imshow('Image without Blue-Green Objects', result)
+    return result
 
 
+def matching(object,template,x_size,y_size,edges_src,edges_tem,):
+    for angle_t in template.values():
+        for mean, angles in object.items():
+            # angle = (angles- angle_t)/2
+            angle = 0
+            roi_x = 0
+            roi_y = int(mean[1] - y_size / 2)
+            roi_y = max(roi_y, 0)
+            # Tạo ROI (Region of Interest)
+            roi = edges_src[roi_y:roi_y + y_size, roi_x:x_size]
+            center_rotate = (mean[0], mean[1])
+            rotated_src = imutils.rotate(roi, angle, center_rotate)
+            res = cv2.matchTemplate(rotated_src, edges_tem, method)
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+            cv2.imshow(f"detect {angle}", rotated_src)
+            if max_val >= 0.3:
+                print(max_val, mean, angle)
+                mean_target.append(mean)
+                angel_target.append(angles)
+                topleft = max_loc
+                topleft = (topleft[0], topleft[1] + roi_y)
+                bottomright = (topleft[0] + w, topleft[1] + h)
+                cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
+            else:
+                continue
+path_src = "datafornichi/src/back2.png"
+sr0 = cv2.imread(path_src)
+sr0 = cv2.pyrDown(sr0)
 
-def fit_pca(data, src):
-    data = np.float32(data)
-    mean, eigenvectors = cv2.PCACompute(data, mean=None)
-    mean_point = (int(round(mean[0][0])), int(round(mean[0][1])))
-    cv2.circle(src, mean_point, 3, (0, 0, 255), -1)
-    scale = 100
-    vector1_end = (int(mean_point[0] + eigenvectors[0][0] * scale), int(mean_point[1] + eigenvectors[0][1] * scale))
-    cv2.arrowedLine(src, mean_point, vector1_end, (0, 255,255), 1,cv2.LINE_AA)
-    # Find min and max values along the direction of vector1_end
-    min_val = np.min(np.dot(data - mean, eigenvectors.T))
-    max_val = np.max(np.dot(data - mean, eigenvectors.T))
-    # Draw a line covering the entire range of data along vector1_end
-    line_start = (int(mean_point[0] + eigenvectors[0][0] * min_val), int(mean_point[1] + eigenvectors[0][1] * min_val))
-    line_end = (int(mean_point[0] + eigenvectors[0][0] * max_val), int(mean_point[1] + eigenvectors[0][1] * max_val))
-    cv2.line(src, line_start, line_end, (255,255, 0), 1,cv2.LINE_AA)
-    cv2.imshow('3333333333333', src)
-    return vector1_end,min_val,max_val
+sr0 = remove_jig(sr0)
+contours, hierarchy_src,edges_src = tienxuly(sr0)
+
+path_tem = "datafornichi/template/tem_back.png"
+sr1 = cv2.imread(path_tem)
+sr1 = cv2.pyrDown(sr1)
+sr1 = remove_jig(sr1)
+contourt, hierarchy_tem,edges_tem = tienxuly(sr1)
+
+template, template_show = fit_angel_pca(contourt, hierarchy_tem, sr1)
+object, src_show = fit_angel_pca(contours, hierarchy_src, sr0)
+# cv2.imshow(f"src_show",template_show)
 
 
-def find_longest_line(points):
+# # init parameter
+method = eval("cv2.TM_CCOEFF_NORMED")
+h, w = edges_tem.shape[:2]
+topleft = [0, 0]
+y_size = max(h, w)
+x_size = edges_src.shape[1]
+angel_target = []
+mean_target = []
 
-    _, _, vx, vy, x0, y0, inliers = cv2.fitLine(points, cv2.DIST_L2, 0, 0.01, 0.01)
-    # Tính điểm đầu và điểm cuối trên đường thẳng
-    point1 = (int(x0 - 1000 * vx), int(y0 - 1000 * vy))
-    point2 = (int(x0 + 1000 * vx), int(y0 + 1000 * vy))
+for angle_t in template.values():
+    for mean, angles in object.items():
+        # angle = (angles- angle_t)/2
+        angle = 0
+        # Tính toán vị trí góc trái của ROI
+        roi_x = 0
+        roi_y = int(mean[1] - y_size / 2)
+        roi_y = max(roi_y, 0)
+        # Tạo ROI (Region of Interest)
+        roi = edges_src[roi_y:roi_y + y_size, roi_x:x_size]
+        center_rotate = (mean[0], mean[1])
+        rotated_src = imutils.rotate(roi, angle, center_rotate)
+        res = cv2.matchTemplate(rotated_src, edges_tem, method)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+        cv2.imshow(f"detect {angle}", rotated_src)
+        if max_val >= 0.3:
+            print(max_val,mean, angle)
+            mean_target.append(mean)
+            angel_target.append(angles)
+            topleft = max_loc
+            topleft = (topleft[0],topleft[1] + roi_y)
+            bottomright = (topleft[0] + w, topleft[1]+h)
+            cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
+        else:
+            continue
 
-    return point1, point2
 
+for index, point in enumerate(mean_target):
+    mean_point = (int(round(point[0])), int(round(point[1])))
+    cv2.circle(sr0, mean_point, 5, (0, 255, 255), -1)
+    note = str(mean_point)
+    cv2.putText(sr0, note, mean_point, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+    # print(angel_target[index])
 
-
-# Đọc ảnh và tiền xử lý source
-sr0 = cv2.imread("datafornichi/samp_lite.png")
-edges, TopLine, Botline = get_gradient_sobel(sr0)
-
-# # Gọi hàm con để tìm đường thẳng dài nhất
-# line_start, line_end = find_longest_line(TopLine)
-#
-# # Vẽ đường thẳng lên ảnh để kiểm tra
-# image = np.zeros((300, 2000, 3), dtype=np.uint8)
-# cv2.line(image, line_start, line_end, (0, 255, 0), 2)
-#
-# # Hiển thị ảnh
-# cv2.imshow('Longest Line', image)
-
-# vector_top,xmin_top, xmax_top=fit_pca(TopLine,sr0)
-# vector_bot,xmin_bot, xmax_bot=fit_pca( Botline,sr0)
-# distance = cv2.norm(vector_top, vector_bot)
-# print(f'xmin_top: {xmin_top}')
-# print(f'xmax_top: {xmax_top}')
-# print(f'xmin_bot: {xmin_bot}')
-# print(f'xmax_bot {xmax_bot}')
-# print(f'Khoảng cách giữa hai vector là: {distance}')
-# print(f'độ phân giải ảnh là: {edges.shape[::]}')
+cv2.imshow("detect sro", sr0)
+cv2.imshow("detect sr", edges_tem)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
-
-
-

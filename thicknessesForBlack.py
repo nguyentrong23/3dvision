@@ -57,7 +57,7 @@ def fit_pca(data, src):
 # Nhận số nguyên từ người dùng
 # print("dán đường dẫn ảnh: \n")
 # path = str(input())
-image = cv2.imread("datafornichi/pipe_lite.bmp")
+image = cv2.imread("datafornichi/khe.png")
 # image = cv2.pyrUp(image)
 edges, TopLine, Botline = get_gradient_sobel(image)
 # vector_top,xmin_top, xmax_top=fit_pca(TopLine,image)

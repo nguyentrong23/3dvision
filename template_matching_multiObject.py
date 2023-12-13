@@ -3,12 +3,11 @@ import cv2
 import numpy as np
 import math
 import time
-try :
+try:
     import imutils
 except:
-    os.system("pip install  imutils")
+    os.system("pip install imutils")
     import imutils
-
 
 def fit_angel_pca(contours, hierarchy, src):
     min = 1000
@@ -16,8 +15,8 @@ def fit_angel_pca(contours, hierarchy, src):
     for index, cnt in enumerate(contours):
         if hierarchy[0, index, 3] != -1:
             continue;
-        if hierarchy[0, index, 2] != -1:
-            continue;
+        # if hierarchy[0, index, 2] != -1:
+        #     continue;
         area = cv2.contourArea(cnt)
         if area >= min:
             data = cnt[:, 0, :].astype(np.float32)
@@ -26,82 +25,108 @@ def fit_angel_pca(contours, hierarchy, src):
             mean_point = (int(round(mean[0][0])), int(round(mean[0][1])))
             cv2.circle(src, mean_point, 5, (0, 0, 255), -1)
             output[tuple(mean.flatten())] = angel
-            # output[angel] = mean
             scale = 100
             vector2_end = (int(mean_point[0] + eigenvectors[0][0] * scale), int(mean_point[1] + eigenvectors[0][1] * scale))
-            cv2.arrowedLine(src, mean_point, vector2_end, (0, 255, 0), 1,cv2.LINE_AA )
+            cv2.arrowedLine(src, mean_point, vector2_end, (0, 255, 0), 1, cv2.LINE_AA)
     return output, src
 
-def tienxuly(sr0):
+def tienxuly(path):
+    sr0 = cv2.imread(path)
     img_src = cv2.cvtColor(sr0, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(img_src, (3, 3), 0)
-    _, edges_src = cv2.threshold(blurred, 60, 120, cv2.THRESH_BINARY_INV)
+    _, edges_src = cv2.threshold(blurred, 80, 255, cv2.THRESH_BINARY_INV)
     contours, hierarchy = cv2.findContours(edges_src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-    return  contours,hierarchy,edges_src
+
+    edges_src_show = cv2.pyrDown(edges_src)
+    cv2.imshow(f"{path}", edges_src_show)
+    return contours, hierarchy, edges_src
+
+
+def remove_jig(image_path):
+    img = cv2.imread(image_path)
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    lower_blue = np.array([90, 100, 100])
+    upper_blue = np.array([130, 255, 255])
+
+    # Tạo mask để chỉ giữ lại các pixel nằm trong khoảng giá trị màu xanh dương
+    mask = np.zeros_like(img, dtype=np.uint8)
+    mask[(hsv[:, :, 0] >= lower_blue[0]) & (hsv[:, :, 0] <= upper_blue[0]) &
+         (hsv[:, :, 1] >= lower_blue[1]) & (hsv[:, :, 1] <= upper_blue[1]) &
+         (hsv[:, :, 2] >= lower_blue[2]) & (hsv[:, :, 2] <= upper_blue[2])] =255
+    result = cv2.bitwise_or(img, mask)
+    return  result
+
+
 
 
 
 # Đọc ảnh và tiền xử lý source
-sr0 = cv2.imread("datafornichi/src.png")
-contours, hierarchy_src,edges_src = tienxuly(sr0)
-
+path_src = "datafornichi/src/mid1.png"
+contours, hierarchy_src, edges_src = tienxuly(path_src)
 
 #  đọc  và tiền xử lý template
-sr1= cv2.imread("datafornichi/template.png")
-contours_temp, hierarchy_temp,edges_temp = tienxuly(sr1)
+path_tem = "datafornichi/template/TEM_mid2.png"
+contours_temp, hierarchy_temp, edges_temp = tienxuly(path_tem)
 
 # init parameter
 method = eval("cv2.TM_CCOEFF_NORMED")
-h, w = edges_temp.shape[::]
-topleft = [0,0]
-roi =max(h,w)
-roi_size = (roi*2,roi*2)
-angel_taget = []
-mean_taget = []
+h, w = edges_temp.shape[:2]
+topleft = [0, 0]
+roi_size = max(h, w) * 2
+angel_target = []
+mean_target = []
 
-# resolve angel problem by pca
-template,template_show = fit_angel_pca(contours_temp,hierarchy_temp,sr1)
+# # resolve angel problem by pca
+sr0 = cv2.imread(path_src)
+sr1 = cv2.imread(path_tem)
+template, template_show = fit_angel_pca(contours_temp, hierarchy_temp, sr1)
 start_time = time.time()
-object, src_show = fit_angel_pca(contours,hierarchy_src,sr0)
-
-for angelt in template.values():
-    for mean,angels in object.items():
-        angel = angels - angelt
-        #  cho roi từ mean rồi matching theo roi
-        center_rotate = mean
-        rotated_src = imutils.rotate(edges_src,angel,center_rotate)
-        res = cv2.matchTemplate(rotated_src,edges_temp, method)
-        minval, maxval, minloc, maxloc = cv2.minMaxLoc(res)
-        print(maxval)
-        print(angels)
-        cv2.imshow(f"detect {mean}",  rotated_src)
-        # loc = np.where(res >= 0.9)
-        # for pt in zip(*loc[::-1]):
-        #     cv2.rectangle(sr0, pt, (pt[0] + edges_temp.shape[1], pt[1] + edges_temp.shape[0]), (0, 255, 0), 2)
-
-        if(maxval>=0.9):
-            mean_taget.append(mean)
-            angel_taget.append(angels)
-            topleft = maxloc
-            bottomright = (topleft[0] + w, topleft[1] + h)
-            print(topleft)
-            cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
-        else:
-            continue
+object, src_show = fit_angel_pca(contours, hierarchy_src, sr0)
+src_show = cv2.pyrDown(src_show)
+cv2.imshow(f"src_show", src_show)
+#
+# for angle_t in template.values():
+#     for mean, angles in object.items():
+#         angle = angles - angle_t
+#         # Tính toán vị trí góc trái của ROI
+#         roi_x = int(mean[0] - roi_size / 2)
+#         roi_y = int(mean[1] - roi_size / 2)
+#         # Đảm bảo rằng ROI không vượt ra khỏi ảnh
+#         roi_x = max(roi_x, 0)
+#         roi_y = max(roi_y, 0)
+#         # Tạo ROI (Region of Interest)
+#         roi = edges_src[roi_y:roi_y + roi_size, roi_x:roi_x + roi_size]
+#         cv2.imshow(f"roi {mean}", roi)
+#         center_rotate = (roi_size // 2, roi_size // 2)
+#         rotated_src = imutils.rotate(roi, angle, center_rotate)
+#         res = cv2.matchTemplate(rotated_src, edges_temp, method)
+#         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+#         print(max_val)
+#         print(angles)
+#         cv2.imshow(f"detect {mean}", rotated_src)
+#         if max_val >= 0.9:
+#             mean_target.append(mean)
+#             angel_target.append(angles)
+#             topleft = max_loc
+#             # bottomright = (topleft[0] + w, topleft[1] + h)
+#             # print(topleft)
+#             # cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
+#         else:
+#             continue
 #
 # end_time = time.time()
 # execution_time = end_time - start_time
 # print(f"Thời gian chạy: {execution_time} giây")
-#
-# for index,point in enumerate(mean_taget):
-#     mean_point = (int(round(point[0][0])), int(round(point[0][1])))
+
+# for index, point in enumerate(mean_target):
+#     mean_point = (int(round(point[0])), int(round(point[1])))
 #     cv2.circle(sr0, mean_point, 5, (0, 255, 255), -1)
 #     note = str(mean_point)
-#     cv2.putText(sr0,note, mean_point, cv2.FONT_HERSHEY_SIMPLEX,0.5, (0, 255, 0), 1)
-#     print(angel_taget[index])
-cv2.imshow("detect sro",sr0)
-cv2.imshow("edges_temlate",edges_temp)
+#     cv2.putText(sr0, note, mean_point, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+#     print(angel_target[index])
+# sr0 = cv2.pyrDown(sr0)
+# cv2.imshow("detect sro", sr0)
+# cv2.imshow("edges_temlate", edges_temp)
 
 cv2.waitKey(0)
 cv2. destroyAllWindows
-
