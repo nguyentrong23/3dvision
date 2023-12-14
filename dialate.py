@@ -33,7 +33,7 @@ def fit_angel_pca(contours, hierarchy, src):
 def tienxuly(sr0):
     img_src = cv2.cvtColor(sr0, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(img_src, (3, 3), 0)
-    _, edges_src = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY_INV)
+    _, edges_src = cv2.threshold(blurred, 180, 255, cv2.THRESH_BINARY_INV)
     contours, hierarchy = cv2.findContours(edges_src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     return contours, hierarchy, edges_src
 
@@ -55,8 +55,8 @@ def remove_jig(img):
 def matching(object,template,x_size,y_size,edges_src,edges_tem,):
     for angle_t in template.values():
         for mean, angles in object.items():
-            # angle = (angles- angle_t)/2
-            angle = 0
+            angle = (angles- angle_t)/2
+            # angle = 0
             roi_x = 0
             roi_y = int(mean[1] - y_size / 2)
             roi_y = max(roi_y, 0)
@@ -67,7 +67,7 @@ def matching(object,template,x_size,y_size,edges_src,edges_tem,):
             res = cv2.matchTemplate(rotated_src, edges_tem, method)
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
             cv2.imshow(f"detect {angle}", rotated_src)
-            if max_val >= 0.3:
+            if max_val >= 0.8:
                 print(max_val, mean, angle)
                 mean_target.append(mean)
                 angel_target.append(angles)
@@ -77,16 +77,14 @@ def matching(object,template,x_size,y_size,edges_src,edges_tem,):
                 cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
             else:
                 continue
-path_src = "datafornichi/src/back2.png"
+path_src = "datafornichi/src/realsense/h1.bmp"
 sr0 = cv2.imread(path_src)
-sr0 = cv2.pyrDown(sr0)
 
 sr0 = remove_jig(sr0)
 contours, hierarchy_src,edges_src = tienxuly(sr0)
 
-path_tem = "datafornichi/template/tem_back.png"
+path_tem = "datafornichi/template/h1_tem.bmp"
 sr1 = cv2.imread(path_tem)
-sr1 = cv2.pyrDown(sr1)
 sr1 = remove_jig(sr1)
 contourt, hierarchy_tem,edges_tem = tienxuly(sr1)
 
@@ -106,8 +104,8 @@ mean_target = []
 
 for angle_t in template.values():
     for mean, angles in object.items():
-        # angle = (angles- angle_t)/2
-        angle = 0
+        angle = (angles- angle_t)/2
+        # angle = 0
         # Tính toán vị trí góc trái của ROI
         roi_x = 0
         roi_y = int(mean[1] - y_size / 2)
@@ -119,7 +117,7 @@ for angle_t in template.values():
         res = cv2.matchTemplate(rotated_src, edges_tem, method)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
         cv2.imshow(f"detect {angle}", rotated_src)
-        if max_val >= 0.3:
+        if max_val >= 0.8:
             print(max_val,mean, angle)
             mean_target.append(mean)
             angel_target.append(angles)
@@ -127,6 +125,12 @@ for angle_t in template.values():
             topleft = (topleft[0],topleft[1] + roi_y)
             bottomright = (topleft[0] + w, topleft[1]+h)
             cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
+
+            center_x = (topleft[0] + bottomright[0]) // 2
+            center_y = (topleft[1] + bottomright[1]) // 2
+            cv2.circle(sr0, (center_x, center_y), 3, (0, 0, 255), -1)
+            text = f"({center_x}, {center_y})"
+            cv2.putText(sr0, text, (center_x + 10, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
         else:
             continue
 
@@ -134,10 +138,10 @@ for angle_t in template.values():
 for index, point in enumerate(mean_target):
     mean_point = (int(round(point[0])), int(round(point[1])))
     cv2.circle(sr0, mean_point, 5, (0, 255, 255), -1)
-    note = str(mean_point)
-    cv2.putText(sr0, note, mean_point, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+    # note = str(mean_point)
+    # cv2.putText(sr0, note, mean_point, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
     # print(angel_target[index])
-
+sr0 = cv2.pyrDown(sr0)
 cv2.imshow("detect sro", sr0)
 cv2.imshow("detect sr", edges_tem)
 cv2.waitKey(0)

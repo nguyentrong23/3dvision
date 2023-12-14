@@ -3,16 +3,13 @@ import numpy as np
 import sys
 def preprocess_and_highlight_edges(image_path):
     image = cv2.imread(image_path)
-    image = cv2.pyrDown(image)
-    blurred = cv2.pyrMeanShiftFiltering(image, 20, 30)
-    blurred_image = cv2.GaussianBlur(blurred, (5, 5), 0)
+    # blurred = cv2.pyrMeanShiftFiltering(image, 20, 60)
+    blurred_image = cv2.GaussianBlur(image, (5, 5), 0)
     gray_image = cv2.cvtColor(blurred_image, cv2.COLOR_BGR2GRAY)
-    _, thresholded_image = cv2.threshold(gray_image, 60, 255,  cv2.THRESH_BINARY_INV)
+    _, thresholded_image = cv2.threshold(gray_image, 140, 255,  cv2.THRESH_BINARY_INV)
     edges = cv2.Canny(thresholded_image, 50, 150)
     cv2.imshow('edges',edges)
-    data = np.where(edges != 0)
-    data = np.column_stack((data[1], data[0]))
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=30, minLineLength=30, maxLineGap=15)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=20, minLineLength=20, maxLineGap=15)
     mytring = ""
     try:
         for line in lines:
@@ -26,10 +23,9 @@ def preprocess_and_highlight_edges(image_path):
     print(mytring)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    return data, mytring
+    return  mytring
 
-# Gọi hàm với đường dẫn của ảnh
-image_path = "datafornichi/src/test.png"
+image_path = "datafornichi/src/realsense/image.bmp"
 preprocess_and_highlight_edges(image_path)
 # def main():
 #     if len(sys.argv[0]) < 6 and len(sys.argv) < 2:

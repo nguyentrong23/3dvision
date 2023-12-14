@@ -8,12 +8,8 @@ def trackbar_callback(value, path):
     img = cv2.imread(path)
 
     trackbar_1 = cv2.getTrackbarPos('Trackbar 1', 'Thresholded Image')
-    # trackbar_2 = cv2.getTrackbarPos('Trackbar 2', 'Thresholded Image')
-    # trackbar_3 = cv2.getTrackbarPos('Trackbar 3', 'Thresholded Image')
-    # Update global variables based on trackbar values
     threshold_value = trackbar_1
-    # beta = trackbar_2 * 0.1  # Adjusting the step size to 0.1
-    # alpha = trackbar_3 * 0.1  # Adjusting the step size to 0.1
+
 
     # Process image with updated parameters
     img_src = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)

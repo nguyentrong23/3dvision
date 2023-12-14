@@ -23,7 +23,7 @@ def group_points_by_y(points, y_threshold=20):
     groups.append(current_group)
     return groups
 
-def increase_contrast(image, alpha=2.0, beta=1):
+def increase_contrast(image, alpha=1.0, beta=1):
     # Áp dụng phép biến đổi pixel để tăng độ tương phản
     adjusted_image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
     return  adjusted_image
@@ -32,17 +32,18 @@ def increase_contrast(image, alpha=2.0, beta=1):
 def get_gradient_sobel(image):
     image = increase_contrast(image)
     blurred = cv2.GaussianBlur(image,(5,5), 0)
-    blurred = cv2.pyrMeanShiftFiltering(blurred,20,40)
+    blurred = cv2.pyrMeanShiftFiltering(blurred,30,60)
     img_src = cv2.cvtColor(blurred , cv2.COLOR_BGR2GRAY)
-    _, edges_src = cv2.threshold(img_src,120,255, cv2.THRESH_BINARY_INV)
+    _, edges_src = cv2.threshold(img_src,180,255, cv2.THRESH_BINARY_INV)
     edges = cv2.Canny(edges_src, 80, 160)
-
+    cv2.imshow('img_src',edges_src)
     contours, hierarchy_src = cv2.findContours(edges_src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     mask = np.zeros_like(edges_src, dtype=np.uint8)
     for cons in contours:
         area = cv2.contourArea(cons)
         if area > 1000:
             cv2.drawContours(mask, [cons], -1, (255),thickness=cv2.FILLED)
+
     # sobel
     sobel_x = cv2.Sobel(edges_src, cv2.CV_64F, 1, 0, ksize=3)
     sobel_y = cv2.Sobel(edges_src, cv2.CV_64F, 0, 1, ksize=3)
@@ -54,6 +55,7 @@ def get_gradient_sobel(image):
     gradient_angle_flip[direc_angle == 90] = 255
 
     mask = cv2.bitwise_not(mask)
+    cv2.imshow('mask', mask)
     # #   end với cạnh trên và cạnh dưới để bỏ ruột
     gradient_angle = cv2.bitwise_and(gradient_angle, mask)
     gradient_angle_flip = cv2.bitwise_and(gradient_angle_flip, mask)
@@ -76,9 +78,9 @@ def get_gradient_sobel(image):
 
     except:
         print("noline")
-    # cv2.imshow('img_src',img_src)
-    # cv2.imshow('blurred',blurred)
-    # cv2.imshow('edges_src', edges_src)
+    cv2.imshow('image',image)
+    cv2.imshow('gradient_angle',gradient_angle)
+    cv2.imshow('gradient_angle_flip', gradient_angle_flip)
     return edges,  point_top , point_bottom
 
 
@@ -126,11 +128,11 @@ def crop_and_process_large_image(large_image_path, coordinates_str):
         print("coordinates erro")
         return 0
 
-large_image_path = "datafornichi/samp_lite.png"
+large_image_path = "datafornichi/template/template.bmp"
 coordinates_str = ""
 sr0 = crop_and_process_large_image(large_image_path, coordinates_str)
-
-
+# sr0 = cv2.pyrUp(sr0)
+sr0 = cv2.pyrDown(sr0)
 # # # Đọc ảnh và tiền xử lý source
 edges, TopLine, Botline = get_gradient_sobel(sr0)
 group_top= group_points_by_y(TopLine)
@@ -149,6 +151,7 @@ for it,gt in enumerate(group_top):
             print(f'xmax_bot {xmax_bot}')
             print(f'Khoảng cách giữa hai vector là: {distance}')
             print(f'độ phân giải ảnh là: {edges.shape[::]}')
+
 cv2.imwrite("src0.png",sr0)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
