@@ -1,14 +1,35 @@
 import cv2
 import numpy as np
 import sys
-def preprocess_and_highlight_edges(image_path):
-    image = cv2.imread(image_path)
-    # blurred = cv2.pyrMeanShiftFiltering(image, 20, 60)
+
+def crop_and_process_large_image(large_image_path, coordinates_str):
+    large_image = cv2.imread(large_image_path)
+    try:
+        coordinates = list(map(int, coordinates_str.split(',')))
+        x1, y1, x2, y2, x4, y4, x3, y3 = coordinates
+        x = int(min(x1, x2, x3, x4))
+        y = int(min(y1, y2, y3, y4))
+        width = int(max(x1, x2, x3, x4) - x)
+        height = int(max(y1, y2, y3, y4) - y)
+        crop_region = (x, y, width, height)
+        cropped_image = large_image[y:y + height, x:x + width]
+        # cv2.imshow('Large Image', large_image)
+        return cropped_image
+    except:
+        if not coordinates_str:
+            cropped_image= large_image
+            # cv2.imshow('cropped_image', cropped_image)
+            return  cropped_image
+        print("coordinates erro")
+        return 0
+
+
+def preprocess_and_highlight_edges(image):
     blurred_image = cv2.GaussianBlur(image, (5, 5), 0)
     gray_image = cv2.cvtColor(blurred_image, cv2.COLOR_BGR2GRAY)
-    _, thresholded_image = cv2.threshold(gray_image, 140, 255,  cv2.THRESH_BINARY_INV)
-    edges = cv2.Canny(thresholded_image, 50, 150)
-    cv2.imshow('edges',edges)
+    _, thresholded_image = cv2.threshold(gray_image, 80, 255,  cv2.THRESH_BINARY)
+    edges = cv2.Canny(thresholded_image, 50, 255)
+    # cv2.imshow('edges',thresholded_image)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=20, minLineLength=20, maxLineGap=15)
     mytring = ""
     try:
@@ -19,26 +40,33 @@ def preprocess_and_highlight_edges(image_path):
             mytring += note
     except:
         print("noline")
-    cv2.imshow('1', image)
-    print(mytring)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow('1', image)
     return  mytring
 
-image_path = "datafornichi/src/realsense/image.bmp"
-preprocess_and_highlight_edges(image_path)
-# def main():
-#     if len(sys.argv[0]) < 6 and len(sys.argv) < 2:
-#         print("dan duong dan:")
-#     else:
-#         path = sys.argv[1]
-#         try:
-#             image_path = path
-#             preprocess_and_highlight_edges(image_path)
-#             cv2.waitKey(0)
-#             cv2.destroyAllWindows()
-#         except:
-#             return 'đường dẫn không chính xác'
+# image_path = "datafornichi/samp_lite.png"
+# coordinates_str = "187,72,325,74,190,170,346,170"
+# sr0 = crop_and_process_large_image(image_path, coordinates_str)
+# preprocess_and_highlight_edges(sr0)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
 
-# if __name__ == "__main__":
-#     main()
+def main():
+    if len(sys.argv[0]) < 6 and len(sys.argv) < 2:
+        print("missing path:")
+    elif len(sys.argv) == 3:
+        path = sys.argv[1]
+        coordinates_str = sys.argv[2]
+    elif len(sys.argv) == 2:
+        path = sys.argv[1]
+        coordinates_str = ""
+    try:
+        sr0 = crop_and_process_large_image(path, coordinates_str)
+        result_string = preprocess_and_highlight_edges(sr0)
+        print(result_string)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
+    except:
+        return 'đường dẫn không chính xác'
+
+if __name__ == "__main__":
+    main()

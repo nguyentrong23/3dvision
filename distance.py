@@ -128,11 +128,11 @@ def crop_and_process_large_image(large_image_path, coordinates_str):
         print("coordinates erro")
         return 0
 
-large_image_path = "datafornichi/template/template.bmp"
+large_image_path = "datafornichi/src/realsense/td1.jpg"
 coordinates_str = ""
 sr0 = crop_and_process_large_image(large_image_path, coordinates_str)
-# sr0 = cv2.pyrUp(sr0)
-sr0 = cv2.pyrDown(sr0)
+sr0 = cv2.pyrUp(sr0)
+# sr0 = cv2.pyrDown(sr0)
 # # # Đọc ảnh và tiền xử lý source
 edges, TopLine, Botline = get_gradient_sobel(sr0)
 group_top= group_points_by_y(TopLine)

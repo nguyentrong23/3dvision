@@ -55,8 +55,8 @@ def remove_jig(img):
 def matching(object,template,x_size,y_size,edges_src,edges_tem,):
     for angle_t in template.values():
         for mean, angles in object.items():
-            # angle = (angles- angle_t)/2
-            angle = 0
+            angle = (angles- angle_t)/2
+            # angle = 0
             roi_x = 0
             roi_y = int(mean[1] - y_size / 2)
             roi_y = max(roi_y, 0)
@@ -67,7 +67,7 @@ def matching(object,template,x_size,y_size,edges_src,edges_tem,):
             res = cv2.matchTemplate(rotated_src, edges_tem, method)
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
             cv2.imshow(f"detect {angle}", rotated_src)
-            if max_val >= 0.3:
+            if max_val >= 0.8:
                 print(max_val, mean, angle)
                 mean_target.append(mean)
                 angel_target.append(angles)
@@ -77,14 +77,14 @@ def matching(object,template,x_size,y_size,edges_src,edges_tem,):
                 cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
             else:
                 continue
-path_src = "datafornichi/src/realsense/rs1.jpg"
+path_src = "datafornichi/pic_pattern/src.png"
 sr0 = cv2.imread(path_src)
 
 
 sr0 = remove_jig(sr0)
 contours, hierarchy_src,edges_src = tienxuly(sr0)
 
-path_tem = "datafornichi/template/template_rs1.jpg"
+path_tem = "datafornichi/pic_pattern/tem_mini.png"
 sr1 = cv2.imread(path_tem)
 sr1 = remove_jig(sr1)
 contourt, hierarchy_tem,edges_tem = tienxuly(sr1)
@@ -105,13 +105,14 @@ mean_target = []
 
 for angle_t in template.values():
     for mean, angles in object.items():
-        angle = (angles- angle_t)/2
+        angle = (angles- angle_t)
+        print(angle_t,angles)
         # angle = 0
-        # Tính toán vị trí góc trái của ROI
+
         roi_x = 0
-        roi_y = int(mean[1] - y_size / 2)
+        roi_y = int(mean[1] - y_size/2)
         roi_y = max(roi_y, 0)
-        # Tạo ROI (Region of Interest)
+
         roi = edges_src[roi_y:roi_y + y_size, roi_x:x_size]
         center_rotate = (mean[0], mean[1])
         rotated_src = imutils.rotate(roi, angle, center_rotate)

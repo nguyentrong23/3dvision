@@ -72,6 +72,8 @@ if __name__ == "__main__":
         print(*line_manager.lines)
         line_id_to_find = 20
         found_line = line_manager.find_line_by_id(line_id_to_find)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
         if found_line:
             print(f"\nĐã tìm thấy đường thẳng với ID {line_id_to_find}: {found_line}")
         else:
