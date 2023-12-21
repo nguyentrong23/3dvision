@@ -2,43 +2,35 @@ import cv2
 import numpy as np
 
 def trackbar_callback(value, path):
-    threshold_value = 0
-    beta = 0
-    alpha = 0
     img = cv2.imread(path)
+    thersh = value
+    line,linedata= preprocess_and_highlight_edges(img,thersh)
+    print(linedata)
+    cv2.imshow('Thresholded Image', line)
 
-    trackbar_1 = cv2.getTrackbarPos('Trackbar 1', 'Thresholded Image')
-    threshold_value = trackbar_1
+def preprocess_and_highlight_edges(image,thresh):
+    blurred_image = cv2.GaussianBlur(image, (5, 5), 0)
+    gray_image = cv2.cvtColor(blurred_image, cv2.COLOR_BGR2GRAY)
+    _, thresholded_image = cv2.threshold(gray_image,thresh, 255,  cv2.THRESH_BINARY)
+    edges = cv2.Canny(thresholded_image, 50, 255)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=20, minLineLength=20, maxLineGap=15)
+    lineData = {}
+    try:
+        for index,line in enumerate(lines) :
+            x1, y1, x2, y2 = line[0]
+            cv2.line(image, (x1, y1), (x2, y2), (0, 0, 255), 1, cv2.LINE_AA)
+            note = str(x1) + " " + str(y1) + " " + str(x2) + " " + str(y2) + "/"
+            lineData[index] = note
+    except:
+        print("noline")
+    return  image,lineData
 
 
-    # Process image with updated parameters
-    img_src = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    kernel = np.ones((5, 5), np.uint8)
-    dilated_image = cv2.dilate(img_src, kernel, iterations=1)
-
-    blurred = cv2.GaussianBlur(img_src, (5,5), 0)
-    _, edges_src = cv2.threshold(dilated_image,threshold_value, 255, cv2.THRESH_BINARY_INV)
-    contours, hierarchy = cv2.findContours(edges_src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-    edges_src = cv2.pyrDown(edges_src)
-    # cv2.imshow(f"detect {path}", edges_src)
-    cv2.imshow('Thresholded Image', edges_src)
-
-# Load the image
-path = 'datafornichi/src1.jpeg'
-
-# Create a window for the thresholded image
+path = "datafornichi/src/realsense/h11.bmp"
 cv2.namedWindow('Thresholded Image')
-
-# Create trackbars for threshold, contrast, and brightness
 cv2.createTrackbar('Trackbar 1', 'Thresholded Image', 0, 255, lambda x: trackbar_callback(x, path))
-cv2.createTrackbar('Trackbar 2', 'Thresholded Image', 1, 200, lambda x: trackbar_callback(x, path))
-cv2.createTrackbar('Trackbar 3', 'Thresholded Image', 1, 50, lambda x: trackbar_callback(x, path))
-
-# Initialize the trackbar positions
 cv2.setTrackbarPos('Trackbar 1', 'Thresholded Image', 50)
-cv2.setTrackbarPos('Trackbar 2', 'Thresholded Image', 10)
-cv2.setTrackbarPos('Trackbar 3', 'Thresholded Image', 20)
 
 # Keep the window open
 cv2.waitKey(0)

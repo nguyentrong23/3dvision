@@ -61,8 +61,8 @@ def get_gradient_sobel(image,thresh):
     data_top = np.where(gradient_angle_flip != 0)
     point_top = np.column_stack((data_top[1], data_top[0]))
 
-    lines_top = cv2.HoughLinesP(gradient_angle, 1, np.pi / 180,  threshold=15, minLineLength=15, maxLineGap=10)
-    lines_bot = cv2.HoughLinesP(gradient_angle_flip, 1, np.pi / 180, threshold=15, minLineLength=15, maxLineGap=10)
+    lines_top = cv2.HoughLinesP(gradient_angle, 1, np.pi / 180,  threshold=15, minLineLength=15, maxLineGap=30)
+    lines_bot = cv2.HoughLinesP(gradient_angle_flip, 1, np.pi / 180, threshold=15, minLineLength=15, maxLineGap=30)
     try:
         for line in lines_top:
             x1, y1, x2, y2 = line[0]
@@ -72,8 +72,8 @@ def get_gradient_sobel(image,thresh):
             cv2.line(image, (x1, y1), (x2, y2), (0, 255, 255), 1, cv2.LINE_AA)
     except:
         print("noline")
-    cv2.imshow('image', image)
-    return edges,  point_top , point_bottom
+    # cv2.imshow('image', image)
+    return edges,  lines_top , lines_bot
 
 
 
@@ -93,7 +93,7 @@ def fit_pca(data, src):
     line_end = (int(mean_point[0] + eigenvectors[0][0] * max_val), int(mean_point[1] + eigenvectors[0][1] * max_val))
     cv2.line(src, line_start, line_end, (255,255, 0), 1,cv2.LINE_AA)
     # cv2.imwrite('resutl.png',src)
-    cv2.imshow('3333333333333', src)
+    # cv2.imshow('3333333333333', src)
     return vector1_end,min_val,max_val
 
 
@@ -137,28 +137,26 @@ def is_horizontal_line(coordinates_str, max_rotation_angle=45):
         return 0
 
 large_image_path = "datafornichi/src/realsense/h11.bmp"
-coordinates_str = "65,95,150,91,68,725,147,720"
+coordinates_str = "304,38,326,37,305,753,332,751"
 is_horizon = is_horizontal_line(coordinates_str)
 if  is_horizon ==1:
     sr0 = crop_and_process_large_image(large_image_path, coordinates_str)
     edges, TopLine, Botline = get_gradient_sobel(sr0,180)
-    group_top= group_points_by_y(TopLine)
-    group_bot = group_points_by_y(Botline)
-    for it,gt in enumerate(group_top):
-        for ib,gb in enumerate(group_bot):
-            if(ib == it):
-                vector_top,xmin_top, xmax_top=fit_pca(gt,sr0)
-                vector_bot,xmin_bot, xmax_bot=fit_pca( gb,sr0)
-                distance = cv2.norm(vector_top, vector_bot)
-                print(vector_top)
-                print(vector_bot)
-                print(f'xmin_top: {xmin_top}')
-                print(f'xmax_top: {xmax_top}')
-                print(f'xmin_bot: {xmin_bot}')
-                print(f'xmax_bot {xmax_bot}')
-                print(f'Khoảng cách giữa hai vector là: {distance}')
-                print(f'độ phân giải ảnh là: {edges.shape[::]}')
-    #
+    print(TopLine)
+    # for it,gt in enumerate(TopLine):
+    #     for ib,gb in enumerate(Botline):
+    #         if(ib == it):
+    #             x1, y1, x2, y2 = gt[0]
+    #             x3, y3, x4, y4 = gb[0]
+    #             cv2.line(sr0, (x1, y1), (x2, y2), (255, 0, 255), 1, cv2.LINE_AA)
+    #             cv2.line(sr0, (x3, y3), (x4, y4), (0, 255, 0), 1, cv2.LINE_AA)
+    #             cv2.imshow('333',sr0)
+    #             cv2.waitKey(0)
+    #             #
+    #             # print(f'Khoảng cách giữa hai vector là: {distance}')
+    #             # print(f'độ phân giải ảnh là: {edges.shape[::]}')
+    # # sr0 = cv2.pyrUp(sr0)
+    # cv2.imshow('333',sr0)
 elif is_horizon == 2:
     print("tinh chieu doc")
 else:
@@ -168,50 +166,6 @@ else:
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
-
-# def main():
-#     if  len(sys.argv) < 3:
-#         print("missing path:")
-#     elif len(sys.argv) == 4:
-#         path = sys.argv[1]
-#         try:
-#             thresh = int(sys.argv[2])
-#         except:
-#             thresh = 80
-#         coordinates_str = sys.argv[3]
-#     elif len(sys.argv) == 3:
-#         path = sys.argv[1]
-#         try:
-#             thresh = int(sys.argv[2])
-#         except:
-#             thresh = 80
-#         coordinates_str = ""
-#     try:
-#         sr0 = crop_and_process_large_image(path, coordinates_str)
-#         edges, TopLine, Botline = get_gradient_sobel(sr0,thresh)
-#         group_top = group_points_by_y(TopLine)
-#         group_bot = group_points_by_y(Botline)
-#         for it, gt in enumerate(group_top):
-#             for ib, gb in enumerate(group_bot):
-#                 if (ib == it):
-#                     vector_top, xmin_top, xmax_top = fit_pca(gt, sr0)
-#                     vector_bot, xmin_bot, xmax_bot = fit_pca(gb, sr0)
-#                     distance = cv2.norm(vector_top, vector_bot)
-#                     # print(vector_top)
-#                     # print(vector_bot)
-#                     # print(f'xmin_top: {xmin_top}')
-#                     # print(f'xmax_top: {xmax_top}')
-#                     # print(f'xmin_bot: {xmin_bot}')
-#                     # print(f'xmax_bot {xmax_bot}')
-#                     print(distance)
-#                     # print(f'độ phân giải ảnh là: {edges.shape[::]}')
-#         cv2.waitKey(0)
-#         cv2.destroyAllWindows()
-#     except:
-#         return 'đường dẫn không chính xác'
-#
-# if __name__ == "__main__":
-#     main()
 
 
 

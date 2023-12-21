@@ -108,7 +108,7 @@ def fit_pca(data, src):
 
 
 # Đọc ảnh và tiền xử lý source
-sr0 = cv2.imread("datafornichi/NG01_LITE.jpg")
+sr0 = cv2.imread("datafornichi/samp_lite.png")
 # sr0 = cv2.pyrDown(sr0)
 # sr0 = cv2.pyrDown(sr0)
 edges, TopLine, Botline = get_gradient_sobel(sr0)
