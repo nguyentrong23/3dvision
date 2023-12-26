@@ -94,7 +94,7 @@ for angle_t,meant in template.items():
         res1 = cv2.matchTemplate(rotated_src1, edges_tem, method)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
         _, max_val1, _, max_loc1 = cv2.minMaxLoc(res1)
-        # cv2.imshow(f"detect {angle}", rotated_src)
+        cv2.imshow(f"detect {angle}", rotated_src)
         if max_val1 > max_val:
             max_val = max_val1
             max_loc = max_loc1

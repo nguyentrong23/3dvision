@@ -1,82 +1,142 @@
+import os
 import cv2
 import numpy as np
+import math
+import time
+try:
+    import imutils
+except:
+    os.system("pip install imutils")
+    import imutils
 
-# Global variables to store clicked points
-point1 = (-1, -1)
-point2 = (-1, -1)
-lineData = {}  # Store line data globally
+def fit_angel_pca(sr):
+    min = 3000
+    output = {}
+    # tien xu ly
+    img_src = cv2.cvtColor(sr, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(img_src, (3, 3), 0)
+    _,src = cv2.threshold(blurred, 80, 255, cv2.THRESH_BINARY_INV)
+    contours, hierarchy = cv2.findContours(src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    for index, cnt in enumerate(contours):
+        if hierarchy[0, index, 3] != -1:
+            continue;
+        # if hierarchy[0, index, 2] != -1:
+        #     continue;
+        area = cv2.contourArea(cnt)
+        if area >= min:
+            data = cnt[:, 0, :].astype(np.float32)
+            mean, eigenvectors = cv2.PCACompute(data, mean=None)
+            angel = math.atan2(eigenvectors[0][1], eigenvectors[0][0]) * (180 / math.pi)
+            mean_point = (int(round(mean[0][0])), int(round(mean[0][1])))
+            cv2.circle(sr, mean_point, 5, (0, 0, 255), -1)
+            output[tuple(mean.flatten())] = angel
+            scale = 100
+            vector2_end = (int(mean_point[0] + eigenvectors[0][0] * scale), int(mean_point[1] + eigenvectors[0][1] * scale))
+            cv2.line(sr, mean_point, vector2_end, (0, 255, 0), 1, cv2.LINE_AA)
+            text = f"(angel: {angel})"
+            cv2.putText(sr, text, (int(round(mean[0][0]) - 30), int(round(mean[0][1]) + 30)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+    # cv2.imshow('Original Image', sr)
+    return output,src,contours,hierarchy
 
-def trackbar_callback(value, path):
-    img = cv2.imread(path)
-    thresh = value
-    line, _ = preprocess_and_highlight_edges(img, thresh)
-    cv2.imshow('Thresholded Image', line)
+def remove_jig(img):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    lower_blue = np.array([90, 100, 100])
+    upper_blue = np.array([130, 255, 255])
+    # Tạo mask để chỉ giữ lại các pixel nằm trong khoảng giá trị màu xanh dương
+    mask = np.zeros_like(img, dtype=np.uint8)
+    mask[(hsv[:, :, 0] >= lower_blue[0]) & (hsv[:, :, 0] <= upper_blue[0]) &
+         (hsv[:, :, 1] >= lower_blue[1]) & (hsv[:, :, 1] <= upper_blue[1]) &
+         (hsv[:, :, 2] >= lower_blue[2]) & (hsv[:, :, 2] <= upper_blue[2])] =255
+    result = cv2.bitwise_or(img, mask)
+    # cv2.imshow('Original Image', mask)
+    # cv2.imshow('Image without Blue-Green Objects', result)
+    return result
 
-def preprocess_and_highlight_edges(image,thresh):
-    blurred_image = cv2.GaussianBlur(image, (5, 5), 0)
-    gray_image = cv2.cvtColor(blurred_image, cv2.COLOR_BGR2GRAY)
-    _, thresholded_image = cv2.threshold(gray_image,thresh, 255,  cv2.THRESH_BINARY)
-    edges = cv2.Canny(thresholded_image, 50, 255)
-    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=15, minLineLength=15, maxLineGap=10)
-    # lineData = {}
-    try:
-        for index,line in enumerate(lines) :
-            x1, y1, x2, y2 = line[0]
-            cv2.line(image, (x1, y1), (x2, y2), (0, 0, 255), 1, cv2.LINE_AA)
-            note = str(x1) + " " + str(y1) + " " + str(x2) + " " + str(y2)
-            lineData[index] = note
-    except:
-        print("noline")
-    return  image,lineData
+def padding(img,size):
+    top, bottom, left, right = size, size,0,0
+    border_color = [0, 0, 0]
+    image_with_padding = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=border_color)
+    return image_with_padding
 
-def distance_point_to_line(point, line):
-    x1, y1, x2, y2 = line
-    numerator = abs((y2 - y1) * point[0] - (x2 - x1) * point[1] + x2 * y1 - y2 * x1)
-    denominator = np.sqrt((y2 - y1)**2 + (x2 - x1)**2)
-    distance = numerator / denominator if denominator != 0 else 0
-    return distance
+def rotate_point_in_image(image, point, angle_degrees):
+    height, width = image.shape[:2]
+    center = (width // 2, height // 2)
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle_degrees, 1.0)
+    rotated_point = np.dot(rotation_matrix, np.array([point[0], point[1], 1]))
+    new_x, new_y = rotated_point[:2].astype(int)
+    newpoint = (int(new_x),int(new_y))
+    return newpoint
 
-def mouse_callback(event, x, y, flags, param):
-    global point1, point2
-    if event == cv2.EVENT_LBUTTONDOWN:
-        if point1 == (-1, -1):
-            point1 = (x, y)
-            closed_line=10
-            closed_ind= 0
-            for index, line in lineData.items():
-                line_coordinates = [int(coord) for coord in line.split()]
-                dist = distance_point_to_line((x, y), line_coordinates)
-                if dist < closed_line:
-                    closed_line = dist
-                    closed_ind = index
 
-            print(f"Clicked on line {closed_line}: {closed_ind} : {lineData[closed_ind]}")
 
-        elif point2 == (-1, -1):
-            point2 = (x, y)
-            closed_line = 10
-            closed_ind = 0
-            for index, line in lineData.items():
-                line_coordinates = [int(coord) for coord in line.split()]
-                dist = distance_point_to_line((x, y), line_coordinates)
-                if dist < closed_line:
-                    closed_line = dist
-                    closed_ind = index
+def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
+    # # init parameter
+    method = eval("cv2.TM_CCOEFF_NORMED")
+    h, w = edges_tem.shape[:2]
+    topleft = [0, 0]
+    y_size = max(h, w)
+    x_size = edges_src.shape[1]
+    angel_target = []
+    mean_target = []
+    for angle_t in template.values():
+        for index, (mean, angles) in enumerate(object.items()):
+            # angle = angles - angle_t
+            angle = angles
+            rotated_src = imutils.rotate(edges_src,angle)
+            roi_x = 0
+            roi_y = int(mean[1] - y_size/2)
+            roi_y = max(roi_y, 0)
+            # Tạo ROI (Region of Interest)
+            roi = rotated_src[roi_y:roi_y + y_size, roi_x:x_size]
+            # cv2.imshow('roi', roi)
+            if(roi_y+y_size) > edges_src.shape[0]:
+                size = roi_y+y_size - edges_src.shape[0]
+                roi =  padding(roi, size)
+                roi_y = roi_y - size
+            res = cv2.matchTemplate(roi, edges_tem, method)
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+            # print(max_val)
+            if max_val >= min_thresh:
+                # sr0 = imutils.rotate(sr0, angle)
+                topleft = max_loc
+                topleft = (topleft[0], topleft[1] + roi_y)
+                bottomright = (topleft[0] + w, topleft[1] + h)
+                # cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
+                center_x = (topleft[0] + bottomright[0]) // 2
+                center_y = (topleft[1] + bottomright[1]) // 2
+                # sr0 = imutils.rotate(sr0, -angle)
 
-            print(f"Clicked on line {closed_line}: {closed_ind} : {lineData[closed_ind]}")
-            # Reset points for the next click
-            point1 = (-1, -1)
-            point2 = (-1, -1)
+                m_target = (center_x, center_y)
+                m_target = rotate_point_in_image(sr0, m_target, -angle)
+                cv2.circle(sr0, (m_target[0], m_target[1]), 3, (0, 255, 255), -1)
+                mean_target.append(m_target)
+                angel_target.append(angles)
+    cv2.imshow('Original Image', sr0)
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Thời gian chạy: {execution_time} giây")
+    # cv2.imwrite("kt_mean.png",sr0)
+    cv2.waitKey(0)
+    return  angel_target,mean_target
 
-# Set the mouse callback function
-path = "datafornichi/test.bmp"
-cv2.namedWindow('Thresholded Image')  # Move this line above setMouseCallback
-cv2.createTrackbar('Trackbar 1', 'Thresholded Image', 0, 255, lambda x: trackbar_callback(x, path))
-cv2.setTrackbarPos('Trackbar 1', 'Thresholded Image', 50)
+path_src = "datafornichi/rote.png"
+sr0 = cv2.imread(path_src)
 
-# Set the mouse callback function
-cv2.setMouseCallback('Thresholded Image', mouse_callback)
+path_tem = "datafornichi/rote_temp.png"
+sr1 = cv2.imread(path_tem)
 
-# Keep the window open
+sr1 = remove_jig(sr1)
+sr0 = remove_jig(sr0)
+
+
+start_time = time.time()
+
+template,edges_tem,contourt,_ = fit_angel_pca(sr1)
+object,edges_src,contours,hierarchy = fit_angel_pca(sr0)
+
+angel, mean = matching(edges_src,edges_tem,template,object,0.5,sr0)
+
+print(angel,mean)
+
 cv2.waitKey(0)
 cv2.destroyAllWindows()

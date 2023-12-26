@@ -1,52 +1,30 @@
-import cv2
 import numpy as np
 
-def tienxuly(path):
-    sr0 = cv2.imread(path)
-    img_src = cv2.cvtColor(sr0, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(img_src, (3, 3), 0)
-    cv2.imshow(f"{path}", blurred)
-    cv2.waitKey(0)
-    return blurred
+def distance_between_lines(line1, line2):
+    # Hàm để tính vectơ pháp tuyến của đoạn thẳng
+    def normal_vector(line):
+        x1, y1, x2, y2 = line
+        return np.array([y2 - y1, x1 - x2])
 
+    # Lấy vectơ pháp tuyến của mỗi đoạn thẳng
+    normal1 = normal_vector(line1)
+    normal2 = normal_vector(line2)
 
-def ORB(img1, img2, threshold):
-    orb = cv2.ORB_create()
-    kp1, des1 = orb.detectAndCompute(img1, None)
-    kp2, des2 = orb.detectAndCompute(img2, None)
-    img1 = cv2.drawKeypoints(img1, des1, None)
-    img2 = cv2.drawKeypoints(img2, des2, None)
-    cv2.imshow("img1", img1)
-    cv2.imshow("img2", img2)
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    matches = bf.match(des1, des2)
-    print(matches)
-    matches = sorted(matches, key=lambda x: x.distance)
-    good_matches = [match for match in matches if match.distance < threshold]
-    if good_matches:
-        matching_points = [kp1[match.queryIdx].pt for match in good_matches]
-        matching_points = np.array(matching_points, dtype=np.float32)
-        x, y, w, h = cv2.boundingRect(matching_points)
-        # Vẽ bounding box lên hình 1
-        result_img = img1.copy()
-        cv2.rectangle(result_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        result_img = cv2.pyrDown(result_img)
-        result_img = cv2.pyrDown(result_img)
-        cv2.imshow("Matching Region", result_img)
-    else:
-        print("No good matches found.")
+    # Lấy vectơ giữa hai điểm đầu của chúng
+    vector_between_points = np.array([line2[0] - line1[0], line2[1] - line1[1]])
 
+    # Tính khoảng cách giữa hai đoạn thẳng
+    distance = abs(np.dot(vector_between_points, normal1)) / np.linalg.norm(normal1)
 
-# Đọc ảnh và tiền xử lý source
-path_src = "datafornichi/src/t2.png"
-edges_src = tienxuly(path_src)
+    return distance
 
-#  đọc  và tiền xử lý template
-path_tem = "datafornichi/template/tem.png"
-edges_temp = tienxuly(path_tem)
+# Đoạn thẳng 1: (434, 183) đến (469, 183)
+line1 = [434, 183, 469, 183]
 
-ORB(edges_src,edges_temp,30)
+# Đoạn thẳng 2: (1714, 220) đến (1733, 220)
+line2 = [1714, 220, 1733, 220]
 
+# Tính khoảng cách giữa hai đoạn thẳng
+distance = distance_between_lines(line1, line2)
 
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+print(f"Khoảng cách giữa hai đoạn thẳng là: {distance}")

@@ -15,7 +15,7 @@ def fit_angel_pca(sr):
     # tien xu ly
     img_src = cv2.cvtColor(sr, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(img_src, (3, 3), 0)
-    _,src = cv2.threshold(blurred, 80, 255, cv2.THRESH_BINARY_INV)
+    _,src = cv2.threshold(blurred, 180, 255, cv2.THRESH_BINARY_INV)
     contours, hierarchy = cv2.findContours(src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     for index, cnt in enumerate(contours):
         if hierarchy[0, index, 3] != -1:
@@ -35,6 +35,7 @@ def fit_angel_pca(sr):
             cv2.line(sr, mean_point, vector2_end, (0, 255, 0), 1, cv2.LINE_AA)
             text = f"(angel: {angel})"
             cv2.putText(sr, text, (int(round(mean[0][0]) - 30), int(round(mean[0][1]) + 30)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+    # cv2.imshow('Original Image', sr)
     return output,src,contours,hierarchy
 
 def remove_jig(img):
@@ -56,6 +57,12 @@ def padding(img,size):
     border_color = [0, 0, 0]
     image_with_padding = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=border_color)
     return image_with_padding
+
+def rotate_image(image, angle,center):
+    height, width = image.shape[:2]
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+    rotated_image = cv2.warpAffine(image, rotation_matrix, (width, height))
+    return rotated_image
 
 def rotate_point_in_image(image, point, angle_degrees):
     height, width = image.shape[:2]
@@ -87,7 +94,7 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
             roi_y = max(roi_y, 0)
             # Tạo ROI (Region of Interest)
             roi = rotated_src[roi_y:roi_y + y_size, roi_x:x_size]
-            # cv2.imshow('roi', roi)
+            cv2.imshow('roi', roi)
             if(roi_y+y_size) > edges_src.shape[0]:
                 size = roi_y+y_size - edges_src.shape[0]
                 roi =  padding(roi, size)
@@ -96,39 +103,50 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
             # print(max_val)
             if max_val >= min_thresh:
-                sr0 = imutils.rotate(sr0, angle)
+
+                # sr0 = imutils.rotate(sr0, angle)
                 topleft = max_loc
                 topleft = (topleft[0], topleft[1] + roi_y)
+                topleft = rotate_point_in_image(rotated_src,topleft, -angle)
                 bottomright = (topleft[0] + w, topleft[1] + h)
                 cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
                 center_x = (topleft[0] + bottomright[0]) // 2
                 center_y = (topleft[1] + bottomright[1]) // 2
-                sr0 = imutils.rotate(sr0, -angle)
                 m_target = (center_x,center_y)
-                m_target = rotate_point_in_image(sr0,m_target,-angle)
                 cv2.circle(sr0,(m_target[0],m_target[1]), 3, (0, 255, 255), -1)
+                # sr0 = imutils.rotate(sr0, -angle)
                 mean_target.append(m_target)
                 angel_target.append(angles)
+
                 # cv2.imshow('show_src', sr0)
                 # cv2.waitKey(0)
+
+    # sr0 = cv2.pyrDown(sr0)
+    # sr0 = cv2.pyrDown(sr0)
     cv2.imshow('Original Image', sr0)
     end_time = time.time()
     execution_time = end_time - start_time
     print(f"Thời gian chạy: {execution_time} giây")
-    # cv2.imwrite("kt_mean.png",sr0)
+    cv2.waitKey(0)
     return  angel_target,mean_target
 
 path_src = "datafornichi/src/realsense/h11.bmp"
 sr0 = cv2.imread(path_src)
+
 path_tem = "datafornichi/src/realsense/h11_tem.bmp"
 sr1 = cv2.imread(path_tem)
+
 sr1 = remove_jig(sr1)
 sr0 = remove_jig(sr0)
 
+
 start_time = time.time()
+
 template,edges_tem,contourt,_ = fit_angel_pca(sr1)
 object,edges_src,contours,hierarchy = fit_angel_pca(sr0)
+
 angel, mean = matching(edges_src,edges_tem,template,object,0.5,sr0)
+
 print(angel,mean)
 
 cv2.waitKey(0)
