@@ -96,14 +96,14 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
             # print(max_val)
             if max_val >= min_thresh:
-                sr0 = imutils.rotate(sr0, angle)
+                # sr0 = imutils.rotate(sr0, angle)
                 topleft = max_loc
                 topleft = (topleft[0], topleft[1] + roi_y)
                 bottomright = (topleft[0] + w, topleft[1] + h)
                 cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
                 center_x = (topleft[0] + bottomright[0]) // 2
                 center_y = (topleft[1] + bottomright[1]) // 2
-                sr0 = imutils.rotate(sr0, -angle)
+                # sr0 = imutils.rotate(sr0, -angle)
                 m_target = (center_x,center_y)
                 m_target = rotate_point_in_image(sr0,m_target,-angle)
                 cv2.circle(sr0,(m_target[0],m_target[1]), 3, (0, 255, 255), -1)
@@ -111,6 +111,7 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
                 angel_target.append(angles)
                 # cv2.imshow('show_src', sr0)
                 # cv2.waitKey(0)
+    # sr0 = cv2.pyrDown(sr0)
     cv2.imshow('Original Image', sr0)
     end_time = time.time()
     execution_time = end_time - start_time

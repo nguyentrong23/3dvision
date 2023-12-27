@@ -30,7 +30,6 @@ def preprocess_and_highlight_edges(image,sr00,thresh,x,y):
     gray_image = cv2.cvtColor(blurred_image, cv2.COLOR_BGR2GRAY)
     _, thresholded_image = cv2.threshold(gray_image,thresh, 255,  cv2.THRESH_BINARY)
     edges = cv2.Canny(thresholded_image, 50, 255)
-    # cv2.imshow('edges',thresholded_image)
     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=20, minLineLength=20, maxLineGap=15)
     mytring = ""
     try:
@@ -44,40 +43,39 @@ def preprocess_and_highlight_edges(image,sr00,thresh,x,y):
         print("noline")
     cv2.imshow('1', image)
     cv2.imshow('2', sr00)
-    cv2.imwrite("ttt.png",sr00)
     return  mytring
 
-# image_path = "datafornichi/test.bmp"
-# coordinates_str = "655,175,785,175,322,286,381,286"
-# sr0,sr,xtop_left,ytop_left = crop_and_process_large_image(image_path, coordinates_str)
-# resutl=preprocess_and_highlight_edges(sr0,sr,180,xtop_left,ytop_left)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+image_path = "datafornichi/src/mid2.png"
+coordinates_str = ""
+sr0,sr,xtop_left,ytop_left = crop_and_process_large_image(image_path, coordinates_str)
+resutl=preprocess_and_highlight_edges(sr0,sr,90,xtop_left,ytop_left)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
 
-def main():
-    if  len(sys.argv) < 3:
-        print("missing path or thresh")
-    elif len(sys.argv) == 4:
-        path = sys.argv[1]
-        try:
-            thresh = int(sys.argv[2])
-        except:
-            thresh = 80
-        coordinates_str = sys.argv[3]
-    elif len(sys.argv) == 3:
-        path = sys.argv[1]
-        try:
-            thresh = int(sys.argv[2])
-        except:
-            thresh = 80
-        coordinates_str = ""
-    try:
-        sr0,sr,xtop_left,ytop_left = crop_and_process_large_image(path, coordinates_str)
-        resutl=preprocess_and_highlight_edges(sr0,sr,thresh,xtop_left,ytop_left)
-        print(resutl)
-        cv2.waitKey(0)
-    except:
-        return 'đường dẫn không chính xác'
-
-if __name__ == "__main__":
-    main()
+# def main():
+#     if  len(sys.argv) < 3:
+#         print("missing path or thresh")
+#     elif len(sys.argv) == 4:
+#         path = sys.argv[1]
+#         try:
+#             thresh = int(sys.argv[2])
+#         except:
+#             thresh = 80
+#         coordinates_str = sys.argv[3]
+#     elif len(sys.argv) == 3:
+#         path = sys.argv[1]
+#         try:
+#             thresh = int(sys.argv[2])
+#         except:
+#             thresh = 80
+#         coordinates_str = ""
+#     try:
+#         sr0,sr,xtop_left,ytop_left = crop_and_process_large_image(path, coordinates_str)
+#         resutl=preprocess_and_highlight_edges(sr0,sr,thresh,xtop_left,ytop_left)
+#         print(resutl)
+#         cv2.waitKey(0)
+#     except:
+#         return 'đường dẫn không chính xác'
+#
+# if __name__ == "__main__":
+#     main()

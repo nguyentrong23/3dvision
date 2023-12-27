@@ -8,7 +8,7 @@ def trackbar_callback(value, path):
 
 
 def preprocess_and_highlight_edges(image,thresh):
-    blurred_image = cv2.GaussianBlur(image, (5, 5), 0)
+    blurred_image = cv2.GaussianBlur(image, (3, 3), 0)
     gray_image = cv2.cvtColor(blurred_image, cv2.COLOR_BGR2GRAY)
     _, thresholded_image = cv2.threshold(gray_image,thresh, 255,  cv2.THRESH_BINARY)
     cv2.imshow('ThresholdedImage', thresholded_image)
@@ -27,7 +27,7 @@ def preprocess_and_highlight_edges(image,thresh):
 
 
 
-path = "datafornichi/src/test_thick.png"
+path = "datafornichi/src/fordist/disttttt.png"
 cv2.namedWindow('ThresholdedImage')
 cv2.createTrackbar('Trackbar 1', 'ThresholdedImage', 0, 255, lambda x: trackbar_callback(x, path))
 cv2.setTrackbarPos('Trackbar 1', 'ThresholdedImage', 50)
