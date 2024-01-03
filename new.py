@@ -15,7 +15,7 @@ def fit_angel_pca(sr):
     # tien xu ly
     img_src = cv2.cvtColor(sr, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(img_src, (3, 3), 0)
-    _,src = cv2.threshold(blurred, 80, 255, cv2.THRESH_BINARY_INV)
+    _,src = cv2.threshold(blurred, 150, 255, cv2.THRESH_BINARY_INV)
     contours, hierarchy = cv2.findContours(src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     for index, cnt in enumerate(contours):
         if hierarchy[0, index, 3] != -1:
@@ -40,7 +40,7 @@ def fit_angel_pca(sr):
 
 def remove_jig(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    lower_blue = np.array([90, 100, 100])
+    lower_blue = np.array([90, 80, 80])
     upper_blue = np.array([130, 255, 255])
     # Tạo mask để chỉ giữ lại các pixel nằm trong khoảng giá trị màu xanh dương
     mask = np.zeros_like(img, dtype=np.uint8)
@@ -119,10 +119,10 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
     cv2.waitKey(0)
     return  angel_target,mean_target
 
-path_src = "datafornichi/rote.png"
+path_src = "datafornichi/protect/1.bmp"
 sr0 = cv2.imread(path_src)
 
-path_tem = "datafornichi/rote_temp.png"
+path_tem = "datafornichi/protect/tl.bmp"
 sr1 = cv2.imread(path_tem)
 
 sr1 = remove_jig(sr1)

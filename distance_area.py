@@ -15,7 +15,7 @@ def fit_angel_pca(sr):
     # tien xu ly
     img_src = cv2.cvtColor(sr, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(img_src, (3, 3), 0)
-    _,src = cv2.threshold(blurred, 80, 255, cv2.THRESH_BINARY_INV)
+    _,src = cv2.threshold(blurred, 40, 255, cv2.THRESH_BINARY_INV)
     contours, hierarchy = cv2.findContours(src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     for index, cnt in enumerate(contours):
         if hierarchy[0, index, 3] != -1:
@@ -40,7 +40,7 @@ def fit_angel_pca(sr):
 
 def remove_jig(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    lower_blue = np.array([90, 100, 100])
+    lower_blue = np.array([90, 80, 80])
     upper_blue = np.array([130, 255, 255])
     # Tạo mask để chỉ giữ lại các pixel nằm trong khoảng giá trị màu xanh dương
     mask = np.zeros_like(img, dtype=np.uint8)
@@ -119,11 +119,11 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
     # cv2.imwrite("kt_mean.png",sr0)
     return  angel_target,mean_target
 
-path_src = "datafornichi/src/fordist/diss.png"
+path_src = "datafornichi/protect/1.bmp"
 sr0 = cv2.imread(path_src)
 
-list_path_temp = ["datafornichi/src/fordist/l.png","datafornichi/src/fordist/mid.png","datafornichi/src/fordist/r.png"]
-list_path_src = ["datafornichi/src/fordist/diss.png"]
+list_path_temp = ["datafornichi/protect/l_t.bmp","datafornichi/protect/l_t.bmp"]
+list_path_src = ["datafornichi/protect/1.bmp"]
 list_temp = []
 list_src  = []
 
@@ -136,13 +136,14 @@ for path_tem in list_path_temp:
 for path_src in list_path_src:
     sr = cv2.imread(path_src)
     sr = remove_jig(sr)
+    cv2.imshow(' sr',sr)
     list_src.append(sr)
 
 for t in list_temp:
     template,edges_tem, _, _ = fit_angel_pca(t)
     for s in list_src:
         object, edges_src, _, _ = fit_angel_pca(s)
-        angel, mean = matching(edges_src, edges_tem, template, object, 0.8, sr0)
+        angel, mean = matching(edges_src, edges_tem, template, object, 0.5, sr0)
         print(angel,mean)
 
 cv2.waitKey(0)

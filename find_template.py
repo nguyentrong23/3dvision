@@ -119,9 +119,9 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
     # cv2.imwrite("kt_mean.png",sr0)
     return  angel_target,mean_target
 
-path_src = "datafornichi/src/realsense/h11.bmp"
+path_src = "datafornichi/rote.png"
 sr0 = cv2.imread(path_src)
-path_tem = "datafornichi/src/realsense/h11_tem.bmp"
+path_tem = "datafornichi/rote_temp.png"
 sr1 = cv2.imread(path_tem)
 sr1 = remove_jig(sr1)
 sr0 = remove_jig(sr0)
