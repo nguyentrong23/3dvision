@@ -138,8 +138,6 @@ sr1 = cv2.imread(path_tem)
 
 sr1 = remove_jig(sr1)
 sr0 = remove_jig(sr0)
-
-
 start_time = time.time()
 
 template,edges_tem,contourt,_ = fit_angel_pca(sr1)

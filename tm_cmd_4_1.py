@@ -99,6 +99,7 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
     x_size = edges_src.shape[1]
     angel_target = []
     mean_target = []
+    output = {}
     for angle_t in template.values():
         for index, (mean, angles) in enumerate(object.items()):
             # angle = angles - angle_t
@@ -109,14 +110,16 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
             roi_y = max(roi_y, 0)
             # Tạo ROI (Region of Interest)
             roi = rotated_src[roi_y:roi_y + y_size, roi_x:x_size]
-            # cv2.imshow('roi', roi)
+            cv2.imshow('roi', roi)
+            cv2.waitKey(0)
+
             if(roi_y+y_size) > edges_src.shape[0]:
                 size = roi_y+y_size - edges_src.shape[0]
                 roi =  padding(roi, size)
                 roi_y = roi_y - size
             res = cv2.matchTemplate(roi, edges_tem, method)
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-            # print(max_val)
+            print(max_val)
             if max_val >= min_thresh:
                 # sr0 = imutils.rotate(sr0, angle)
                 topleft = max_loc
@@ -129,20 +132,23 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
 
                 m_target = (center_x, center_y)
                 m_target = rotate_point_in_image(sr0, m_target, -angle)
-                cv2.circle(sr0, (m_target[0], m_target[1]), 3, (0, 255, 255), -1)
-                mean_target.append(m_target)
-                angel_target.append(angles)
-    # cv2.imshow('Original Image', sr0)
+                cv2.circle(sr0, (m_target[0], m_target[1]), 8, (0, 255, 255), -1)
+                output[angles]= m_target
+                # mean_target.append(m_target)
+                # angel_target.append(angles)
+    sr0 = cv2.pyrDown(sr0)
+    sr0 = cv2.pyrDown(sr0)
+
+    cv2.imshow('Original Image', sr0)
     # cv2.imwrite("kt_mean.png",sr0)
-    # cv2.waitKey(0)
-    return  angel_target,mean_target
+    return  output
 
-path ="datafornichi/src/realsense/h11.bmp"
+path ="datafornichi/mid2.png"
 coordinates_src = ""
-coordinates_tem ="134,14,300,14,145,180,345,180"
-thresh = 180
+coordinates_tem ="1332,866,1544,866,1544,989,1332,989"
+thresh = 120
 
-tart_time = time.time()
+
 sr0,xs,ys = crop_and_process_large_image(path,coordinates_src)
 
 sr1,xt,yt = crop_and_process_large_image(path,coordinates_tem)
@@ -151,16 +157,15 @@ sr1,xt,yt = crop_and_process_large_image(path,coordinates_tem)
 sr1 = remove_jig(sr1)
 sr0 = remove_jig(sr0)
 
-start_time = time.time()
 template,edges_tem,contourt,_ = fit_angel_pca(sr1,thresh)
 object,edges_src,contours,hierarchy = fit_angel_pca(sr0,thresh)
-
-angel, mean = matching(edges_src,edges_tem,template,object,0.5,sr0)
-print(angel,mean)
-end_time = time.time()
-execution_time = end_time - start_time
-print(f"Thời gian chạy: {execution_time} giây")
-# cv2.waitKey(0)
+result = matching(edges_src,edges_tem,template,object,0.6,sr0)
+myst=""
+for k,v in result.items():
+    note =str(v[0])+","+str(v[1])+","+str(k)+"/"
+    myst+=note
+print(myst)
+cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 # def main():
@@ -183,17 +188,17 @@ cv2.destroyAllWindows()
 #         sr1,xt,yt = crop_and_process_large_image(path,coordinates_tem)
 #         sr1 = remove_jig(sr1)
 #         sr0 = remove_jig(sr0)
-#         start_time = time.time()
 #         template,edges_tem,contourt,_ = fit_angel_pca(sr1,thresh)
 #         object,edges_src,contours,hierarchy = fit_angel_pca(sr0,thresh)
 #
-#         angel, mean = matching(edges_src,edges_tem,template,object,min_val,sr0)
-#         end_time = time.time()
-#         execution_time = end_time - start_time
-#         print(f"Thời gian chạy: {execution_time} giây")
-#         print(angel,mean)
-#         cv2.waitKey(0)
-#         cv2.destroyAllWindows()
+#         result = matching(edges_src, edges_tem, template, object, min_val, sr0)
+#         myst = ""
+#         for k, v in result.items():
+#             note = str(v[0]) + "," + str(v[1]) + "," + str(k) + "/"
+#             myst += note
+#         print(myst)
+#         # cv2.waitKey(0)
+#         # cv2.destroyAllWindows()
 #     except:
 #         return 'đường dẫn không chính xác'
 #

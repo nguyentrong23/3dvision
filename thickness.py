@@ -119,7 +119,7 @@ def crop_and_process_large_image(large_image_path, coordinates_str):
 
 
 
-large_image_path = "datafornichi/src/test_thick.png"
+large_image_path = "datafornichi/thickness.png"
 coordinates_str = ""
 
 

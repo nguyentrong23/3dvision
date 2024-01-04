@@ -15,7 +15,7 @@ def fit_angel_pca(sr):
     # tien xu ly
     img_src = cv2.cvtColor(sr, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(img_src, (3, 3), 0)
-    _,src = cv2.threshold(blurred, 150, 255, cv2.THRESH_BINARY_INV)
+    _,src = cv2.threshold(blurred, 200, 255, cv2.THRESH_BINARY_INV)
     contours, hierarchy = cv2.findContours(src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     for index, cnt in enumerate(contours):
         if hierarchy[0, index, 3] != -1:
@@ -88,7 +88,9 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
             roi_y = max(roi_y, 0)
             # Tạo ROI (Region of Interest)
             roi = rotated_src[roi_y:roi_y + y_size, roi_x:x_size]
-            # cv2.imshow('roi', roi)
+            cv2.imshow('roi', roi)
+            cv2.imshow('edges_tem', edges_tem)
+            cv2.waitKey(0)
             if(roi_y+y_size) > edges_src.shape[0]:
                 size = roi_y+y_size - edges_src.shape[0]
                 roi =  padding(roi, size)
@@ -98,6 +100,7 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
             # print(max_val)
             if max_val >= min_thresh:
                 # sr0 = imutils.rotate(sr0, angle)
+                print(max_val)
                 topleft = max_loc
                 topleft = (topleft[0], topleft[1] + roi_y)
                 bottomright = (topleft[0] + w, topleft[1] + h)
@@ -111,6 +114,7 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
                 cv2.circle(sr0, (m_target[0], m_target[1]), 3, (0, 255, 255), -1)
                 mean_target.append(m_target)
                 angel_target.append(angles)
+    sr0 = cv2.pyrDown(sr0)
     cv2.imshow('Original Image', sr0)
     end_time = time.time()
     execution_time = end_time - start_time
@@ -119,10 +123,10 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
     cv2.waitKey(0)
     return  angel_target,mean_target
 
-path_src = "datafornichi/protect/1.bmp"
+path_src = "datafornichi/bua.bmp"
 sr0 = cv2.imread(path_src)
 
-path_tem = "datafornichi/protect/tl.bmp"
+path_tem = "datafornichi/tem_bua.bmp"
 sr1 = cv2.imread(path_tem)
 
 sr1 = remove_jig(sr1)
