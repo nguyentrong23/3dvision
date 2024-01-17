@@ -3,19 +3,90 @@ import cv2
 import numpy as np
 import math
 import time
+import sys
 try:
     import imutils
 except:
     os.system("pip install imutils")
     import imutils
 
-def fit_angel_pca(sr):
+
+def crop_and_process_large_image(large_image_path, coordinates_str):
+    large_image = cv2.imread(large_image_path)
+    try:
+        coordinates = list(map(int, coordinates_str.split(',')))
+        x1, y1, x2, y2, x4, y4, x3, y3 = coordinates
+        x = int(min(x1, x2, x3, x4))
+        y = int(min(y1, y2, y3, y4))
+        width = int(max(x1, x2, x3, x4) - x)
+        height = int(max(y1, y2, y3, y4) - y)
+        cropped_image = large_image[y:y + height, x:x + width]
+        return cropped_image,x,y
+    except:
+        if not coordinates_str:
+            cropped_image= large_image
+            return  cropped_image,0,0
+        print("coordinates erro")
+        return 0,0,0,0
+
+
+def   crop_temp(large_image_path, coordinates_str):
+    large_image = cv2.imread(large_image_path)
+    try:
+        coordinates = list(map(int, coordinates_str.split(',')))
+        x1, y1, x2, y2, x4, y4, x3, y3 = coordinates
+        x = int(min(x1, x2, x3, x4))
+        y = int(min(y1, y2, y3, y4))
+        width = int(max(x1, x2, x3, x4) - x)
+        height = int(max(y1, y2, y3, y4) - y)
+        cropped_image = large_image[y:y + height, x:x + width]
+        border_color = [255, 255, 255]
+        angle_roi = np.arctan2(y2 - y1, x2 - x1)
+        angle_roi = np.degrees(angle_roi)
+        diagonal = math.sqrt(width ** 2 + height ** 2)
+        paddwidth = int((diagonal - width)/2)
+        paddheight = int((diagonal - height)/2)
+        cropped_image = cv2.copyMakeBorder(cropped_image,paddheight,paddheight,paddwidth,paddwidth, cv2.BORDER_CONSTANT, value=border_color)
+        x1 = x1 - x + paddwidth
+        y1 = y1 - y + paddheight
+        x2 = x2 - x + paddwidth
+        y2 = y2 - y + paddheight
+        x3 = x3 - x + paddwidth
+        y3 = y3 - y + paddheight
+        x4 = x4 - x + paddwidth
+        y4 = y4 - y + paddheight
+        point1 = rotate_point_in_image(cropped_image,(x1,y1), angle_roi)
+        point2 = rotate_point_in_image(cropped_image,(x2,y2), angle_roi)
+        point3 = rotate_point_in_image(cropped_image,(x3,y3), angle_roi)
+        point4 = rotate_point_in_image(cropped_image,(x4,y4), angle_roi)
+        rotated_src = imutils.rotate(cropped_image,angle_roi)
+        # final crop
+        xf = int(min(point1[0],point2[0], point3[0], point4[0]))
+        yf = int(min(point1[1],point2[1], point3[1], point4[1]))
+        widthf = int(max(point1[0],point2[0], point3[0], point4[0]) - xf)
+        heightf = int(max(point1[1],point2[1], point3[1], point4[1]) - yf)
+        cropped = rotated_src[yf:yf + heightf, xf:xf + widthf]
+        # cv2.imshow('image_with_padding', rotated_src)
+        # cv2.imshow('image',cropped)
+        return cropped,angle_roi
+    except:
+        if not coordinates_str:
+            cropped_image= large_image
+            return  cropped_image,0
+        print("coordinates erro")
+        return 0,0
+
+
+
+
+
+def fit_angel_pca(sr,thr):
     min = 3000
     output = {}
     # tien xu ly
     img_src = cv2.cvtColor(sr, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(img_src, (3, 3), 0)
-    _,src = cv2.threshold(blurred, 200, 255, cv2.THRESH_BINARY_INV)
+    _,src = cv2.threshold(blurred,thr, 255, cv2.THRESH_BINARY_INV  )
     contours, hierarchy = cv2.findContours(src, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     for index, cnt in enumerate(contours):
         if hierarchy[0, index, 3] != -1:
@@ -35,7 +106,7 @@ def fit_angel_pca(sr):
             cv2.line(sr, mean_point, vector2_end, (0, 255, 0), 1, cv2.LINE_AA)
             text = f"(angel: {angel})"
             cv2.putText(sr, text, (int(round(mean[0][0]) - 30), int(round(mean[0][1]) + 30)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
-    # cv2.imshow('Original Image', sr)
+    cv2.imshow('Original Image', sr)
     return output,src,contours,hierarchy
 
 def remove_jig(img):
@@ -69,19 +140,18 @@ def rotate_point_in_image(image, point, angle_degrees):
 
 
 
-def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
+def matching(edges_src,edges_tem,template,object,min_thresh,angel_start,sr0):
     # # init parameter
     method = eval("cv2.TM_CCOEFF_NORMED")
     h, w = edges_tem.shape[:2]
-    topleft = [0, 0]
     y_size = max(h, w)
     x_size = edges_src.shape[1]
-    angel_target = []
-    mean_target = []
+    output = {}
     for angle_t in template.values():
         for index, (mean, angles) in enumerate(object.items()):
             # angle = angles - angle_t
             angle = angles
+
             rotated_src = imutils.rotate(edges_src,angle)
             roi_x = 0
             roi_y = int(mean[1] - y_size/2)
@@ -89,58 +159,57 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
             # Tạo ROI (Region of Interest)
             roi = rotated_src[roi_y:roi_y + y_size, roi_x:x_size]
             cv2.imshow('roi', roi)
-            cv2.imshow('edges_tem', edges_tem)
             cv2.waitKey(0)
+
             if(roi_y+y_size) > edges_src.shape[0]:
                 size = roi_y+y_size - edges_src.shape[0]
                 roi =  padding(roi, size)
                 roi_y = roi_y - size
             res = cv2.matchTemplate(roi, edges_tem, method)
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-            # print(max_val)
             if max_val >= min_thresh:
                 # sr0 = imutils.rotate(sr0, angle)
                 print(max_val)
                 topleft = max_loc
                 topleft = (topleft[0], topleft[1] + roi_y)
                 bottomright = (topleft[0] + w, topleft[1] + h)
-                # cv2.rectangle(sr0, topleft, bottomright, (0, 255, 255), 1)
                 center_x = (topleft[0] + bottomright[0]) // 2
                 center_y = (topleft[1] + bottomright[1]) // 2
                 # sr0 = imutils.rotate(sr0, -angle)
-
                 m_target = (center_x, center_y)
                 m_target = rotate_point_in_image(sr0, m_target, -angle)
-                cv2.circle(sr0, (m_target[0], m_target[1]), 3, (0, 255, 255), -1)
-                mean_target.append(m_target)
-                angel_target.append(angles)
+                cv2.circle(sr0, (m_target[0], m_target[1]), 8, (0, 255, 255), -1)
+                output[angles]= m_target
+                # mean_target.append(m_target)
+                # angel_target.append(angles)
+    sr0 = cv2.pyrDown(sr0)
     sr0 = cv2.pyrDown(sr0)
     cv2.imshow('Original Image', sr0)
-    end_time = time.time()
-    execution_time = end_time - start_time
-    print(f"Thời gian chạy: {execution_time} giây")
     # cv2.imwrite("kt_mean.png",sr0)
-    cv2.waitKey(0)
-    return  angel_target,mean_target
+    return  output
 
-path_src = "datafornichi/bua.bmp"
+path_src = r"datafornichi\src\t2.png"
 sr0 = cv2.imread(path_src)
 
-path_tem = "datafornichi/tem_bua.bmp"
+path_tem = r"datafornichi\src\t2_tem.png"
 sr1 = cv2.imread(path_tem)
 
-sr1 = remove_jig(sr1)
+thresh = 80
+
 sr0 = remove_jig(sr0)
+sr1 = remove_jig(sr1)
 
 
-start_time = time.time()
+template,edges_tem,contourt,_ = fit_angel_pca(sr1,thresh)
+object,edges_src,contours,hierarchy = fit_angel_pca(sr0,thresh)
 
-template,edges_tem,contourt,_ = fit_angel_pca(sr1)
-object,edges_src,contours,hierarchy = fit_angel_pca(sr0)
-
-angel, mean = matching(edges_src,edges_tem,template,object,0.5,sr0)
-
-print(angel,mean)
-
+cv2.imshow('Original Image',edges_tem)
+#
+result = matching(edges_src,edges_tem,template,object,0.6,0,sr0)
+myst=""
+for k,v in result.items():
+    note =str(v[0])+","+str(v[1])+","+str(k)+"/"
+    myst+=note
+print(myst)
 cv2.waitKey(0)
 cv2.destroyAllWindows()

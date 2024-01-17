@@ -5,7 +5,7 @@ import sys
 import time
 
 
-def group_points_by_y(points, y_threshold=20):
+def group_points_by_y(points, y_threshold=5):
     groups = []
     current_group = []
     sorted_points = sorted(points, key=lambda x: x[1])
@@ -13,11 +13,9 @@ def group_points_by_y(points, y_threshold=20):
         current_point = sorted_points[i]
         next_point = sorted_points[i + 1]
         current_group.append(current_point)
-        # Kiểm tra nếu điểm tiếp theo cách quá xa tọa độ y của điểm hiện tại
         if abs(next_point[1] - current_point[1]) > y_threshold:
             groups.append(current_group)
             current_group = []
-    # Thêm điểm cuối cùng vào nhóm cuối cùng
     current_group.append(sorted_points[-1])
     groups.append(current_group)
     return groups
@@ -44,22 +42,18 @@ def get_gradient_sobel(image,thresh):
     sobel_x = cv2.Sobel(edges_src, cv2.CV_64F, 1, 0, ksize=3)
     sobel_y = cv2.Sobel(edges_src, cv2.CV_64F, 0, 1, ksize=3)
     direc_angle = np.degrees(np.arctan2(sobel_y, sobel_x))
-
     gradient_angle = np.zeros_like(direc_angle, dtype=np.uint8)
     gradient_angle_flip = np.zeros_like(direc_angle, dtype=np.uint8)
     gradient_angle[direc_angle == -90] = 255
     gradient_angle_flip[direc_angle == 90] = 255
-
     mask = cv2.bitwise_not(mask)
     # #   end với cạnh trên và cạnh dưới để bỏ ruột
     gradient_angle = cv2.bitwise_and(gradient_angle, mask)
     gradient_angle_flip = cv2.bitwise_and(gradient_angle_flip, mask)
-
     data_bottom = np.where(gradient_angle != 0)
     point_bottom = np.column_stack((data_bottom[1], data_bottom[0]))
     data_top = np.where(gradient_angle_flip != 0)
     point_top = np.column_stack((data_top[1], data_top[0]))
-
     lines_top = cv2.HoughLinesP(gradient_angle, 1, np.pi / 180,  threshold=15, minLineLength=15, maxLineGap=10)
     lines_bot = cv2.HoughLinesP(gradient_angle_flip, 1, np.pi / 180, threshold=15, minLineLength=15, maxLineGap=10)
     try:
@@ -75,7 +69,6 @@ def get_gradient_sobel(image,thresh):
     return edges,  point_top , point_bottom
 
 
-
 def fit_pca(data, src):
     data = np.float32(data)
     mean, eigenvectors = cv2.PCACompute(data, mean=None)
@@ -84,22 +77,17 @@ def fit_pca(data, src):
     scale = 100
     vector1_end = (int(mean_point[0] + eigenvectors[0][0] * scale), int(mean_point[1] + eigenvectors[0][1] * scale))
     cv2.arrowedLine(src, mean_point, vector1_end, (0, 255,255), 1,cv2.LINE_AA)
-    # Find min and max values along the direction of vector1_end
     min_val = np.min(np.dot(data - mean, eigenvectors.T))
     max_val = np.max(np.dot(data - mean, eigenvectors.T))
-    # Draw a line covering the entire range of data along vector1_end
     line_start = (int(mean_point[0] + eigenvectors[0][0] * min_val), int(mean_point[1] + eigenvectors[0][1] * min_val))
     line_end = (int(mean_point[0] + eigenvectors[0][0] * max_val), int(mean_point[1] + eigenvectors[0][1] * max_val))
     cv2.line(src, line_start, line_end, (255,255, 0), 1,cv2.LINE_AA)
-    # cv2.imwrite('resutl.png',src)
     cv2.imshow('3333333333333', src)
     return vector1_end,min_val,max_val
 
 
 def crop_and_process_large_image(large_image_path, coordinates_str):
     large_image = cv2.imread(large_image_path)
-    large_image = cv2.pyrDown(large_image)
-    large_image = cv2.pyrDown(large_image)
     try:
         coordinates = list(map(int, coordinates_str.split(',')))
         x1, y1, x2, y2, x4, y4, x3, y3 = coordinates
@@ -119,8 +107,8 @@ def crop_and_process_large_image(large_image_path, coordinates_str):
 
 
 
-large_image_path = "datafornichi/thickness.png"
-coordinates_str = ""
+large_image_path = r"datafornichi/protect/1.bmp"
+coordinates_str = "1170,27,1393,26,1177,384,1391,391"
 
 
 sr0 = crop_and_process_large_image(large_image_path, coordinates_str)

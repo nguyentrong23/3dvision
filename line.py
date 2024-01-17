@@ -11,15 +11,11 @@ def crop_and_process_large_image(large_image_path, coordinates_str):
         y = int(min(y1, y2, y3, y4))
         width = int(max(x1, x2, x3, x4) - x)
         height = int(max(y1, y2, y3, y4) - y)
-        crop_region = (x, y, width, height)
         cropped_image = large_image[y:y + height, x:x + width]
-        # cv2.imshow('Large Image', large_image)
         return cropped_image,large_image,x,y
     except:
         if not coordinates_str:
             cropped_image= large_image
-            # cv2.imshow('cropped_image', cropped_image)
-            w,h = cropped_image.shape[:2]
             return  cropped_image,large_image,0,0
         print("coordinates erro")
         return 0,0,0,0
@@ -41,41 +37,51 @@ def preprocess_and_highlight_edges(image,sr00,thresh,x,y):
             mytring += note
     except:
         print("noline")
-    cv2.imshow('1', image)
-    cv2.imshow('2', sr00)
     return  mytring
 
-image_path = "datafornichi/src/mid2.png"
-coordinates_str = ""
-sr0,sr,xtop_left,ytop_left = crop_and_process_large_image(image_path, coordinates_str)
-resutl=preprocess_and_highlight_edges(sr0,sr,90,xtop_left,ytop_left)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# image_path = "datafornichi/src/back2.png"
+# coordinates_str = ""
+# sr0,sr,xtop_left,ytop_left = crop_and_process_large_image(image_path, coordinates_str)
+# resutl=preprocess_and_highlight_edges(sr0,sr,90,xtop_left,ytop_left)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
 
-# def main():
-#     if  len(sys.argv) < 3:
-#         print("missing path or thresh")
-#     elif len(sys.argv) == 4:
-#         path = sys.argv[1]
-#         try:
-#             thresh = int(sys.argv[2])
-#         except:
-#             thresh = 80
-#         coordinates_str = sys.argv[3]
-#     elif len(sys.argv) == 3:
-#         path = sys.argv[1]
-#         try:
-#             thresh = int(sys.argv[2])
-#         except:
-#             thresh = 80
-#         coordinates_str = ""
-#     try:
-#         sr0,sr,xtop_left,ytop_left = crop_and_process_large_image(path, coordinates_str)
-#         resutl=preprocess_and_highlight_edges(sr0,sr,thresh,xtop_left,ytop_left)
-#         print(resutl)
-#         cv2.waitKey(0)
-#     except:
-#         return 'đường dẫn không chính xác'
-#
-# if __name__ == "__main__":
-#     main()
+def main():
+    if  len(sys.argv) < 4:
+        print("missing path or thresh")
+    elif len(sys.argv) == 4:
+        path = sys.argv[1]
+        try:
+            thresh = int(sys.argv[2])
+        except:
+            thresh = 80
+        if sys.argv[3]== "_":
+            coordinates_str = ""
+        else:
+            coordinates_str = sys.argv[3]
+        show = False
+    elif len(sys.argv) <= 5:
+        path = sys.argv[1]
+        try:
+            thresh = int(sys.argv[2])
+        except:
+            thresh = 80
+        if sys.argv[3]== "_":
+            coordinates_str = ""
+        else:
+            coordinates_str = sys.argv[3]
+        show = True
+    try:
+        sr0,sr,xtop_left,ytop_left = crop_and_process_large_image(path, coordinates_str)
+        resutl=preprocess_and_highlight_edges(sr0,sr,thresh,xtop_left,ytop_left)
+        print(resutl)
+        if show:
+            cv2.imshow('ROI', sr0)
+            cv2.imshow('SRC', sr)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+    except:
+        return 'đường dẫn không chính xác'
+
+if __name__ == "__main__":
+    main()

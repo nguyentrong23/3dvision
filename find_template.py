@@ -50,7 +50,6 @@ def remove_jig(img):
     # cv2.imshow('Original Image', mask)
     # cv2.imshow('Image without Blue-Green Objects', result)
     return result
-
 def padding(img,size):
     top, bottom, left, right = size, size,0,0
     border_color = [0, 0, 0]
@@ -111,7 +110,7 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
                 angel_target.append(angles)
                 # cv2.imshow('show_src', sr0)
                 # cv2.waitKey(0)
-    # sr0 = cv2.pyrDown(sr0)
+    sr0 = cv2.pyrDown(sr0)
     cv2.imshow('Original Image', sr0)
     end_time = time.time()
     execution_time = end_time - start_time
@@ -119,9 +118,9 @@ def matching(edges_src,edges_tem,template,object,min_thresh,sr0):
     # cv2.imwrite("kt_mean.png",sr0)
     return  angel_target,mean_target
 
-path_src = "datafornichi/rote.png"
+path_src = r"datafornichi\src\t2.png"
 sr0 = cv2.imread(path_src)
-path_tem = "datafornichi/rote_temp.png"
+path_tem = r"datafornichi\src\t2_tem.png"
 sr1 = cv2.imread(path_tem)
 sr1 = remove_jig(sr1)
 sr0 = remove_jig(sr0)
@@ -129,8 +128,7 @@ sr0 = remove_jig(sr0)
 start_time = time.time()
 template,edges_tem,contourt,_ = fit_angel_pca(sr1)
 object,edges_src,contours,hierarchy = fit_angel_pca(sr0)
-angel, mean = matching(edges_src,edges_tem,template,object,0.5,sr0)
+angel, mean = matching(edges_src,edges_tem,template,object,0.6,sr0)
 print(angel,mean)
-
 cv2.waitKey(0)
 cv2.destroyAllWindows()
