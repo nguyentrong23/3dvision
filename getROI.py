@@ -8,7 +8,7 @@ def mouse_callback(event, x, y, flags, param):
         cv2.circle(img, (x, y), 4, (0, 255, 0), -1)
         cv2.imshow('Select Points', img)
 
-img = cv2.imread('datafornichi/protect/1.bmp')
+img = cv2.imread('datafornichi/ttttttt/3.bmp')
 # img= cv2.pyrDown(img)
 cv2.namedWindow('Select Points')
 points = []

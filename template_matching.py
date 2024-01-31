@@ -63,8 +63,6 @@ contourt, hierarchy_tem,edges_tem = tienxuly(sr1)
 template, template_show = fit_angel_pca(contourt, hierarchy_tem, sr1)
 object, src_show = fit_angel_pca(contours, hierarchy_src, sr0)
 # cv2.imshow(f"src_show",template_show)
-
-
 # # init parameter
 method = eval("cv2.TM_CCOEFF_NORMED")
 h, w = edges_tem.shape[:2]

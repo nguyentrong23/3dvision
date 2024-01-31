@@ -10,7 +10,7 @@ except:
     import imutils
 
 def fit_angel_pca(sr):
-    min = 3000
+    min = 10000
     output = {}
     # tien xu ly
     img_src = cv2.cvtColor(sr, cv2.COLOR_BGR2GRAY)
